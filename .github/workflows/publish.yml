@@ -1,0 +1,37 @@
+name: Publish to Mooncakes
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Install current MoonBit
+        run: |
+          curl -fsSL https://cli.moonbitlang.com/install/unix.sh | bash
+          echo "$HOME/.moon/bin" >> "$GITHUB_PATH"
+
+      - name: Verify release
+        run: |
+          moon version --all
+          moon fmt --check
+          moon check --target all --deny-warn
+          moon test --target all --deny-warn
+
+      - name: Publish module
+        env:
+          MOONCAKES_CREDENTIALS_B64: ${{ secrets.MOONCAKES_CREDENTIALS_B64 }}
+        run: |
+          set -eu
+          mkdir -p "$HOME/.moon"
+          trap 'rm -f "$HOME/.moon/credentials.json"' EXIT
+          printf '%s' "$MOONCAKES_CREDENTIALS_B64" | base64 --decode > "$HOME/.moon/credentials.json"
+          moon publish
