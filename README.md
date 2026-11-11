@@ -2,6 +2,7 @@
 
 [![CI](https://github.com/TangShiJi/mooncddl/actions/workflows/ci.yml/badge.svg)](https://github.com/TangShiJi/mooncddl/actions/workflows/ci.yml)
 [![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
+[![Mooncakes](https://img.shields.io/badge/mooncakes.io-0.1.0-orange.svg)](https://mooncakes.io/docs/TangShiJi/mooncddl%400.1.0)
 
 MoonCDDL 是 MoonBit 原生的 CDDL（Concise Data Definition Language）数据契约工具包。它解析 CDDL 规则，并在同一套类型模型上校验 JSON 数据和保留 CBOR 特性的值：字节串、非字符串映射键和语义标签。项目面向协议实现、IoT 网关、WebAuthn/COSE 类数据、API 边界与一致性测试。
 
@@ -29,6 +30,8 @@ MoonCDDL 是 MoonBit 原生的 CDDL（Concise Data Definition Language）数据�
 ```bash
 moon add TangShiJi/mooncddl@0.1.0
 ```
+
+公开包页面：[TangShiJi/mooncddl@0.1.0](https://mooncakes.io/docs/TangShiJi/mooncddl%400.1.0)。服务端构建状态和独立消费者安装记录见 [发布证据](docs/RELEASE_EVIDENCE.md)。
 
 在包的 `moon.pkg` 中导入：
 
@@ -117,6 +120,7 @@ moon package --list
 项目为原创实现，依据 RFC 8610 与 RFC 9165 的公开规范设计，不移植任何现有实现。代码采用 [Apache License 2.0](LICENSE)。版本遵循语义化版本；0.1.x 只接受兼容修复，新增语法能力进入后续次版本。贡献方式见 [CONTRIBUTING.md](CONTRIBUTING.md)，安全问题见 [SECURITY.md](SECURITY.md)。
 
 - [验收清单](docs/ACCEPTANCE.md)
+- [发布与独立安装证据](docs/RELEASE_EVIDENCE.md)
 - [生态查重记录](docs/ECOSYSTEM_AUDIT.md)
 - [变更记录](CHANGELOG.md)
 

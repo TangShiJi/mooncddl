@@ -12,8 +12,8 @@
 | 性能证据 | `benchmarks/validation` 与 `BENCHMARKS.md` | 通过 |
 | CI | GitHub Actions 执行格式、四目标检查/测试、包审计和样例 | 通过 |
 | OSI 许可证 | Apache-2.0 | 通过 |
-| mooncakes.io 公开发布 | `TangShiJi/mooncddl@0.1.0` | 发布后核验 |
-| 独立消费者安装 | 新建模块执行 `moon add TangShiJi/mooncddl@0.1.0` 后检查/测试 | 发布后核验 |
+| mooncakes.io 公开发布 | [`TangShiJi/mooncddl@0.1.0`](https://mooncakes.io/docs/TangShiJi/mooncddl%400.1.0)，服务端 `build_status=success` | 通过 |
+| 独立消费者安装 | 仓库外新模块执行 `moon add`，再经四目标检查/测试及原生运行 | 通过 |
 
 ## 直接行为标准
 
@@ -24,3 +24,5 @@
 5. `format_cddl(parse_cddl(x))` 的输出再次格式化必须字节一致；
 6. `generate_example` 只返回能被指定规则重新校验通过的值；
 7. 公共发布完成后，必须在仓库外的全新目录通过 Mooncakes 依赖解析与编译，才可将发布项标记为通过。
+
+发布与消费者运行的可点击记录见 [RELEASE_EVIDENCE.md](RELEASE_EVIDENCE.md)。
