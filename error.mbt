@@ -1,5 +1,5 @@
 ///|
-/// Source range uses zero-based byte offsets and one-based line/column values.
+/// Source range uses zero-based character offsets and one-based line/column values.
 pub struct SourceSpan {
   start : Int
   end : Int
