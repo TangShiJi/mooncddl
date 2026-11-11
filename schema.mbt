@@ -104,6 +104,20 @@ pub fn reference(name : String) -> TypeExpr {
 }
 
 ///|
+pub fn choice(alternatives : Array[TypeExpr]) -> TypeExpr {
+  Choice(alternatives.copy())
+}
+
+///|
+pub fn integer_range(
+  lower : Int64,
+  upper : Int64,
+  upper_exclusive : Bool,
+) -> TypeExpr {
+  IntegerRange(lower, upper, upper_exclusive)
+}
+
+///|
 pub fn array_schema(entries : Array[GroupEntry]) -> TypeExpr {
   ArraySchema(entries.copy())
 }
@@ -111,6 +125,20 @@ pub fn array_schema(entries : Array[GroupEntry]) -> TypeExpr {
 ///|
 pub fn map_schema(entries : Array[GroupEntry]) -> TypeExpr {
   MapSchema(entries.copy())
+}
+
+///|
+pub fn tagged_schema(tag : Int64, value : TypeExpr) -> TypeExpr {
+  TaggedSchema(tag, value)
+}
+
+///|
+pub fn controlled(
+  target : TypeExpr,
+  operator : ControlOperator,
+  argument : TypeExpr,
+) -> TypeExpr {
+  Controlled(target, operator, argument)
 }
 
 ///|

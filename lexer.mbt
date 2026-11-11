@@ -7,6 +7,7 @@ pub(all) enum TokenKind {
   TextLiteral(String)
   ByteLiteral(Bytes)
   Control(String)
+  Dot
   Assign
   TypeChoice
   GroupChoice
@@ -458,7 +459,14 @@ fn Lexer::next_token(self : Lexer) -> Result[Token, CddlError] {
         Ok(self.token(RangeInclusive, start, line, column))
       }
     }
-    Some('.') => self.read_control(start, line, column)
+    Some('.') =>
+      match self.peek_next() {
+        Some(value) if is_ascii_digit(value) => {
+          ignore(self.advance())
+          Ok(self.token(Dot, start, line, column))
+        }
+        _ => self.read_control(start, line, column)
+      }
     Some('=') => {
       ignore(self.advance())
       if self.peek() == Some('>') {
