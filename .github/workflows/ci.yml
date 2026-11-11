@@ -1,0 +1,46 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Install MoonBit
+        run: |
+          curl -fsSL https://cli.moonbitlang.com/install/unix.sh | bash
+          echo "$HOME/.moon/bin" >> "$GITHUB_PATH"
+
+      - name: Record toolchain
+        run: moon version --all
+
+      - name: Check formatting
+        run: moon fmt --check
+
+      - name: Check all supported targets
+        run: moon check --target all --deny-warn
+
+      - name: Test all supported targets
+        run: moon test --target all --deny-warn
+
+      - name: Verify public API and package contents
+        run: |
+          moon info
+          moon package --list
+
+      - name: Run examples
+        run: |
+          moon run --target native examples/json_api
+          moon run --target native examples/cbor_iot
+          moon run --target native examples/fixture_generation
