@@ -328,9 +328,37 @@ fn Parser::parse_postfix(
             )
         }
         ignore(self.advance())
-        let argument = match self.parse_primary(depth + 1) {
+        let mut argument = match self.parse_primary(depth + 1) {
           Ok(value) => value
           Err(error) => return Err(error)
+        }
+        if self.current_kind() == RangeInclusive ||
+          self.current_kind() == RangeExclusive {
+          let exclusive = self.current_kind() == RangeExclusive
+          ignore(self.advance())
+          let upper_expression = match self.parse_primary(depth + 1) {
+            Ok(value) => value
+            Err(error) => return Err(error)
+          }
+          let lower = match integer_literal_from(argument) {
+            Some(value) => value
+            None =>
+              return Err(
+                self.error(
+                  "control range lower bound must be an integer literal",
+                ),
+              )
+          }
+          let upper = match integer_literal_from(upper_expression) {
+            Some(value) => value
+            None =>
+              return Err(
+                self.error(
+                  "control range upper bound must be an integer literal",
+                ),
+              )
+          }
+          argument = integer_range(lower, upper, exclusive)
         }
         expression = controlled(expression, operator, argument)
       }

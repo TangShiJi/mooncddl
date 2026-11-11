@@ -116,3 +116,20 @@ pub fn CddlValue::size(self : CddlValue) -> Int? {
     _ => None
   }
 }
+
+///|
+/// Compact diagnostic representation that never serializes complete
+/// containers or byte payloads into error messages.
+pub fn CddlValue::describe(self : CddlValue) -> String {
+  match self {
+    NullValue => "null"
+    BoolValue(value) => value.to_string()
+    IntegerValue(value) => value.to_string()
+    FloatValue(value) => value.to_string()
+    TextValue(value) => "\"" + value + "\""
+    BytesValue(value) => "bstr(" + value.length().to_string() + " bytes)"
+    ArrayValue(value) => "array(" + value.length().to_string() + " items)"
+    MapValue(value) => "map(" + value.length().to_string() + " entries)"
+    TaggedValue(tag, _) => "tag(" + tag.to_string() + ")"
+  }
+}
