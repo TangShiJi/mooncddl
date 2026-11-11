@@ -26,13 +26,19 @@ jobs:
           printf '%s\n' \
             'import {' \
             '  "TangShiJi/mooncddl" @cddl,' \
-            '}' > acceptance/moon.pkg
+            '}' \
+            '' \
+            'pkgtype(kind: "executable")' > acceptance/moon.pkg
           printf '%s\n' \
             '///|' \
-            'test "installed package validates JSON" {' \
+            'fn main {' \
             '  let document = @cddl.parse_cddl("request = { id: uint }").unwrap()' \
             '  let report = @cddl.validate_json(document, "{\"id\":7}").unwrap()' \
-            '  assert_true(report.is_valid())' \
-            '}' > acceptance/install_test.mbt
+            '  if !report.is_valid() {' \
+            '    abort("installed package rejected valid JSON")' \
+            '  }' \
+            '  println("external Mooncakes install passed")' \
+            '}' > acceptance/main.mbt
           moon check --target all --deny-warn
           moon test --target all --deny-warn
+          moon run --target native acceptance
