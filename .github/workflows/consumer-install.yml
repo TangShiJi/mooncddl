@@ -1,0 +1,38 @@
+name: Verify Mooncakes consumer install
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  consumer:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Install current MoonBit
+        run: |
+          curl -fsSL https://cli.moonbitlang.com/install/unix.sh | bash
+          echo "$HOME/.moon/bin" >> "$GITHUB_PATH"
+
+      - name: Create unrelated consumer module
+        run: |
+          mkdir "$RUNNER_TEMP/mooncddl-consumer"
+          cd "$RUNNER_TEMP/mooncddl-consumer"
+          moon new . --user external-check --name consumer
+          moon add TangShiJi/mooncddl@0.1.0
+          mkdir acceptance
+          printf '%s\n' \
+            'import {' \
+            '  "TangShiJi/mooncddl" @cddl,' \
+            '}' > acceptance/moon.pkg
+          printf '%s\n' \
+            '///|' \
+            'test "installed package validates JSON" {' \
+            '  let document = @cddl.parse_cddl("request = { id: uint }").unwrap()' \
+            '  let report = @cddl.validate_json(document, "{\"id\":7}").unwrap()' \
+            '  assert_true(report.is_valid())' \
+            '}' > acceptance/install_test.mbt
+          moon check --target all --deny-warn
+          moon test --target all --deny-warn
