@@ -1,5 +1,5 @@
 ///|
-fn fuzz_source(seed : Int, length : Int) -> String {
+fn fuzz_source(seed : Int32, length : Int32) -> String {
   let alphabet = "abcdefghijklmnopqrstuvwxyz0123456789={}[](),?*+/#.;:\"'_- \n".to_array()
   let output : Array[Char] = []
   let mut state = seed

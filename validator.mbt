@@ -1,11 +1,12 @@
 ///|
 /// Result of validating one value. Validation mismatches are data, while
 /// malformed schemas are rejected earlier by `parse_cddl`.
+#derive(Debug, Eq)
 pub struct ValidationReport {
   valid : Bool
   issues : Array[ValidationIssue]
   truncated : Bool
-} derive(Debug, Eq)
+}
 
 ///|
 pub fn ValidationReport::is_valid(self : ValidationReport) -> Bool {
@@ -112,7 +113,7 @@ fn escaped_path_segment(value : String) -> String {
 }
 
 ///|
-fn map_entry_path(parent : String, key : CddlValue, index : Int) -> String {
+fn map_entry_path(parent : String, key : CddlValue, index : Int32) -> String {
   match key {
     TextValue(value) => parent + "/" + escaped_path_segment(value)
     IntegerValue(value) => parent + "/" + value.to_string()
@@ -121,7 +122,7 @@ fn map_entry_path(parent : String, key : CddlValue, index : Int) -> String {
 }
 
 ///|
-fn occurrence_max_reached(cardinality : Occurrence, count : Int) -> Bool {
+fn occurrence_max_reached(cardinality : Occurrence, count : Int32) -> Bool {
   match cardinality.max() {
     Some(value) => count >= value
     None => false
@@ -135,7 +136,7 @@ fn try_validate(
   expression : TypeExpr,
   value : CddlValue,
   path : String,
-  depth : Int,
+  depth : Int32,
 ) -> Bool {
   let trial : ValidationContext = {
     schema,
@@ -167,7 +168,7 @@ fn validate_choice(
   alternatives : Array[TypeExpr],
   value : CddlValue,
   path : String,
-  depth : Int,
+  depth : Int32,
 ) -> Bool {
   for alternative in alternatives {
     if try_validate(
@@ -197,7 +198,7 @@ fn validate_array_group(
   entries : Array[GroupEntry],
   items : Array[CddlValue],
   path : String,
-  depth : Int,
+  depth : Int32,
 ) -> Bool {
   if items.length() > context.limits.max_container_items() {
     return report_mismatch(
@@ -274,7 +275,7 @@ fn validate_map_group(
   declarations : Array[GroupEntry],
   entries : Array[(CddlValue, CddlValue)],
   path : String,
-  depth : Int,
+  depth : Int32,
 ) -> Bool {
   if entries.length() > context.limits.max_container_items() {
     return report_mismatch(
@@ -371,7 +372,7 @@ fn validate_control(
   argument : TypeExpr,
   value : CddlValue,
   path : String,
-  depth : Int,
+  depth : Int32,
 ) -> Bool {
   let target_valid = validate_expression(
     context,
@@ -490,7 +491,7 @@ fn validate_expression(
   expression : TypeExpr,
   value : CddlValue,
   path : String,
-  depth : Int,
+  depth : Int32,
 ) -> Bool {
   if depth > context.limits.max_depth() {
     return report_mismatch(
@@ -639,8 +640,8 @@ fn validate_expression(
 pub fn validate(
   document : Schema,
   value : CddlValue,
-  root? : String? = None,
-  limits? : CddlLimits = cddl_limits(),
+  root~ : String? = None,
+  limits~ : CddlLimits = cddl_limits(),
 ) -> Result[ValidationReport, CddlError] {
   let root_name = match root {
     Some(name) => name
@@ -664,5 +665,5 @@ pub fn validate(
     truncated: false,
   }
   let valid = validate_expression(context, expression, value, "", 0)
-  Ok({ valid, issues: context.issues, truncated: context.truncated })
+  Ok({ valid, issues: context.issues, truncated: context.truncated, })
 }

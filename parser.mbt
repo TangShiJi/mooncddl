@@ -2,7 +2,7 @@
 priv struct Parser {
   tokens : Array[Token]
   limits : CddlLimits
-  mut index : Int
+  mut index : Int32
 }
 
 ///|
@@ -25,7 +25,7 @@ fn Parser::advance(self : Parser) -> Token {
 }
 
 ///|
-fn Parser::peek_kind(self : Parser, distance : Int) -> TokenKind {
+fn Parser::peek_kind(self : Parser, distance : Int32) -> TokenKind {
   let position = self.index + distance
   if position < self.tokens.length() {
     self.tokens[position].kind()
@@ -118,7 +118,7 @@ fn integer_literal_from(expression : TypeExpr) -> Int64? {
 ///|
 fn Parser::parse_primary(
   self : Parser,
-  depth : Int,
+  depth : Int32,
 ) -> Result[TypeExpr, CddlError] {
   if depth > self.limits.max_depth() {
     return Err(cddl_error(ResourceLimit, "schema nesting exceeds max_depth"))
@@ -169,7 +169,10 @@ fn Parser::parse_primary(
 }
 
 ///|
-fn Parser::parse_tag(self : Parser, depth : Int) -> Result[TypeExpr, CddlError] {
+fn Parser::parse_tag(
+  self : Parser,
+  depth : Int32,
+) -> Result[TypeExpr, CddlError] {
   ignore(self.advance())
   match self.current_kind() {
     IntegerLiteral(6L) => ignore(self.advance())
@@ -205,7 +208,7 @@ fn Parser::parse_tag(self : Parser, depth : Int) -> Result[TypeExpr, CddlError] 
 fn Parser::parse_container(
   self : Parser,
   is_map : Bool,
-  depth : Int,
+  depth : Int32,
 ) -> Result[TypeExpr, CddlError] {
   ignore(self.advance())
   let close = if is_map { RBrace } else { RBracket }
@@ -276,7 +279,7 @@ fn Parser::parse_container(
 ///|
 fn Parser::parse_postfix(
   self : Parser,
-  depth : Int,
+  depth : Int32,
 ) -> Result[TypeExpr, CddlError] {
   let mut expression = match self.parse_primary(depth + 1) {
     Ok(value) => value
@@ -372,7 +375,7 @@ fn Parser::parse_postfix(
 ///|
 fn Parser::parse_expression(
   self : Parser,
-  depth : Int,
+  depth : Int32,
 ) -> Result[TypeExpr, CddlError] {
   let first = match self.parse_postfix(depth + 1) {
     Ok(value) => value
@@ -450,13 +453,13 @@ fn find_unknown_reference(
 /// named reference before returning an immutable schema.
 pub fn parse_cddl(
   source : String,
-  limits? : CddlLimits = cddl_limits(),
+  limits~ : CddlLimits = cddl_limits(),
 ) -> Result[Schema, CddlError] {
   let tokens = match tokenize(source, limits~) {
     Ok(value) => value
     Err(error) => return Err(error)
   }
-  let parser : Parser = { tokens, limits, index: 0 }
+  let parser : Parser = { tokens, limits, index: 0, }
   let rules : Array[Rule] = []
   parser.skip_newlines()
   while parser.current_kind() != EndOfInput {

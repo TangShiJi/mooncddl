@@ -1,5 +1,5 @@
 ///|
-fn repeated_text(length : Int) -> String {
+fn repeated_text(length : Int32) -> String {
   let output : Array[String] = []
   for _index = 0; _index < length; _index = _index + 1 {
     output.push("x")
@@ -8,7 +8,7 @@ fn repeated_text(length : Int) -> String {
 }
 
 ///|
-fn requested_size(expression : TypeExpr) -> Int? {
+fn requested_size(expression : TypeExpr) -> Int32? {
   match expression {
     Literal(IntegerValue(value)) if value >= 0L && value <= 2147483647L =>
       Some(value.to_int())
@@ -19,7 +19,7 @@ fn requested_size(expression : TypeExpr) -> Int? {
 }
 
 ///|
-fn sized_witness(target : TypeExpr, size : Int) -> CddlValue? {
+fn sized_witness(target : TypeExpr, size : Int32) -> CddlValue? {
   match target {
     Primitive(TextType) => Some(text_value(repeated_text(size)))
     Primitive(BytesType) =>
@@ -69,7 +69,7 @@ fn generate_expression(
   expression : TypeExpr,
   limits : CddlLimits,
   stack : Array[String],
-  depth : Int,
+  depth : Int32,
 ) -> Result[CddlValue, CddlError] {
   if depth > limits.max_depth() {
     return Err(
@@ -269,8 +269,8 @@ fn generate_expression(
 /// generation shapes; the function never returns an unchecked fixture.
 pub fn generate_example(
   document : Schema,
-  root? : String? = None,
-  limits? : CddlLimits = cddl_limits(),
+  root~ : String? = None,
+  limits~ : CddlLimits = cddl_limits(),
 ) -> Result[CddlValue, CddlError] {
   let root_name = match root {
     Some(name) => name

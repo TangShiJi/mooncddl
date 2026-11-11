@@ -20,7 +20,7 @@ fn escape_cddl_text(value : String) -> String {
 }
 
 ///|
-fn hex_nibble(value : Int) -> String {
+fn hex_nibble(value : Int32) -> String {
   "0123456789abcdef"[value:value + 1].to_owned()
 }
 

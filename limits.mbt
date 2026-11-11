@@ -1,23 +1,24 @@
 ///|
 /// Explicit limits keep schemas and untrusted values from causing unbounded
 /// recursion, diagnostics, or container scans.
+#derive(Debug, Eq)
 pub struct CddlLimits {
-  max_source_bytes : Int
-  max_tokens : Int
-  max_rules : Int
-  max_depth : Int
-  max_container_items : Int
-  max_issues : Int
-} derive(Debug, Eq)
+  max_source_bytes : Int32
+  max_tokens : Int32
+  max_rules : Int32
+  max_depth : Int32
+  max_container_items : Int32
+  max_issues : Int32
+}
 
 ///|
 pub fn cddl_limits(
-  max_source_bytes? : Int = 1024 * 1024,
-  max_tokens? : Int = 100000,
-  max_rules? : Int = 10000,
-  max_depth? : Int = 128,
-  max_container_items? : Int = 100000,
-  max_issues? : Int = 100,
+  max_source_bytes~ : Int32 = 1024 * 1024,
+  max_tokens~ : Int32 = 100000,
+  max_rules~ : Int32 = 10000,
+  max_depth~ : Int32 = 128,
+  max_container_items~ : Int32 = 100000,
+  max_issues~ : Int32 = 100,
 ) -> CddlLimits {
   {
     max_source_bytes: positive_limit(max_source_bytes),
@@ -30,7 +31,7 @@ pub fn cddl_limits(
 }
 
 ///|
-fn positive_limit(value : Int) -> Int {
+fn positive_limit(value : Int32) -> Int32 {
   if value < 1 {
     1
   } else {
@@ -39,31 +40,31 @@ fn positive_limit(value : Int) -> Int {
 }
 
 ///|
-pub fn CddlLimits::max_source_bytes(self : CddlLimits) -> Int {
+pub fn CddlLimits::max_source_bytes(self : CddlLimits) -> Int32 {
   self.max_source_bytes
 }
 
 ///|
-pub fn CddlLimits::max_tokens(self : CddlLimits) -> Int {
+pub fn CddlLimits::max_tokens(self : CddlLimits) -> Int32 {
   self.max_tokens
 }
 
 ///|
-pub fn CddlLimits::max_rules(self : CddlLimits) -> Int {
+pub fn CddlLimits::max_rules(self : CddlLimits) -> Int32 {
   self.max_rules
 }
 
 ///|
-pub fn CddlLimits::max_depth(self : CddlLimits) -> Int {
+pub fn CddlLimits::max_depth(self : CddlLimits) -> Int32 {
   self.max_depth
 }
 
 ///|
-pub fn CddlLimits::max_container_items(self : CddlLimits) -> Int {
+pub fn CddlLimits::max_container_items(self : CddlLimits) -> Int32 {
   self.max_container_items
 }
 
 ///|
-pub fn CddlLimits::max_issues(self : CddlLimits) -> Int {
+pub fn CddlLimits::max_issues(self : CddlLimits) -> Int32 {
   self.max_issues
 }

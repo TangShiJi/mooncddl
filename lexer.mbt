@@ -1,6 +1,7 @@
 ///|
 /// Lexical units retained by the parser. Newlines are significant at the top
 /// level because CDDL rules do not require a trailing delimiter.
+#derive(Debug, Eq)
 pub(all) enum TokenKind {
   Identifier(String)
   IntegerLiteral(Int64)
@@ -28,13 +29,14 @@ pub(all) enum TokenKind {
   Hash
   Newline
   EndOfInput
-} derive(Debug, Eq)
+}
 
 ///|
+#derive(Debug, Eq)
 pub struct Token {
   kind : TokenKind
   span : SourceSpan
-} derive(Debug, Eq)
+}
 
 ///|
 pub fn Token::kind(self : Token) -> TokenKind {
@@ -50,9 +52,9 @@ pub fn Token::span(self : Token) -> SourceSpan {
 priv struct Lexer {
   chars : Array[Char]
   limits : CddlLimits
-  mut index : Int
-  mut line : Int
-  mut column : Int
+  mut index : Int32
+  mut line : Int32
+  mut column : Int32
 }
 
 ///|
@@ -94,11 +96,11 @@ fn Lexer::advance(self : Lexer) -> Char? {
 fn Lexer::token(
   self : Lexer,
   kind : TokenKind,
-  start : Int,
-  line : Int,
-  column : Int,
+  start : Int32,
+  line : Int32,
+  column : Int32,
 ) -> Token {
-  { kind, span: source_span(start, self.index, line, column) }
+  { kind, span: source_span(start, self.index, line, column), }
 }
 
 ///|
@@ -114,7 +116,7 @@ fn is_hex_digit(value : Char) -> Bool {
 }
 
 ///|
-fn digit_value(value : Char) -> Int {
+fn digit_value(value : Char) -> Int32 {
   if value >= '0' && value <= '9' {
     value.to_int() - '0'.to_int()
   } else if value >= 'a' && value <= 'f' {
@@ -151,9 +153,9 @@ fn lex_error(message : String, span : SourceSpan) -> CddlError {
 ///|
 fn Lexer::read_identifier(
   self : Lexer,
-  start : Int,
-  line : Int,
-  column : Int,
+  start : Int32,
+  line : Int32,
+  column : Int32,
 ) -> Token {
   while (match self.peek() {
           Some(value) => is_identifier_continue(value)
@@ -168,9 +170,9 @@ fn Lexer::read_identifier(
 ///|
 fn Lexer::read_control(
   self : Lexer,
-  start : Int,
-  line : Int,
-  column : Int,
+  start : Int32,
+  line : Int32,
+  column : Int32,
 ) -> Result[Token, CddlError] {
   ignore(self.advance())
   let name_start = self.index
@@ -196,7 +198,7 @@ fn Lexer::read_control(
 ///|
 fn checked_digit_append(
   current : Int64,
-  digit : Int,
+  digit : Int32,
   base : Int64,
   negative : Bool,
 ) -> Int64? {
@@ -217,9 +219,9 @@ fn checked_digit_append(
 ///|
 fn Lexer::read_integer(
   self : Lexer,
-  start : Int,
-  line : Int,
-  column : Int,
+  start : Int32,
+  line : Int32,
+  column : Int32,
 ) -> Result[Token, CddlError] {
   let negative = self.peek() == Some('-')
   if negative {
@@ -288,9 +290,9 @@ fn Lexer::read_integer(
 ///|
 fn Lexer::read_text(
   self : Lexer,
-  start : Int,
-  line : Int,
-  column : Int,
+  start : Int32,
+  line : Int32,
+  column : Int32,
 ) -> Result[Token, CddlError] {
   ignore(self.advance())
   let output : Array[Char] = []
@@ -350,14 +352,14 @@ fn Lexer::read_text(
 ///|
 fn Lexer::read_hex_bytes(
   self : Lexer,
-  start : Int,
-  line : Int,
-  column : Int,
+  start : Int32,
+  line : Int32,
+  column : Int32,
 ) -> Result[Token, CddlError] {
   ignore(self.advance())
   ignore(self.advance())
   let output : Array[Byte] = []
-  let mut high : Int? = None
+  let mut high : Int32? = None
   while self.peek() is Some(_) {
     let current = self.advance().unwrap()
     if current == '\'' {
@@ -549,7 +551,7 @@ fn Lexer::next_token(self : Lexer) -> Result[Token, CddlError] {
 /// Tokenize CDDL source while enforcing source and token count limits.
 pub fn tokenize(
   source : String,
-  limits? : CddlLimits = cddl_limits(),
+  limits~ : CddlLimits = cddl_limits(),
 ) -> Result[Array[Token], CddlError] {
   let chars = source.to_array()
   if @utf8.encode(source[:]).length() > limits.max_source_bytes() {
@@ -557,7 +559,7 @@ pub fn tokenize(
       cddl_error(ResourceLimit, "CDDL source exceeds max_source_bytes"),
     )
   }
-  let lexer : Lexer = { chars, limits, index: 0, line: 1, column: 1 }
+  let lexer : Lexer = { chars, limits, index: 0, line: 1, column: 1, }
   let output : Array[Token] = []
   while true {
     if output.length() >= lexer.limits.max_tokens() {

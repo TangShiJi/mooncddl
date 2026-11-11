@@ -1,6 +1,7 @@
 ///|
 /// Format-neutral data model covering the JSON data model plus CBOR byte
 /// strings, non-string map keys, tags, and floating-point values.
+#derive(Debug, Eq)
 pub(all) enum CddlValue {
   NullValue
   BoolValue(Bool)
@@ -11,7 +12,7 @@ pub(all) enum CddlValue {
   ArrayValue(Array[CddlValue])
   MapValue(Array[(CddlValue, CddlValue)])
   TaggedValue(Int64, CddlValue)
-} derive(Debug, Eq)
+}
 
 ///|
 pub fn null_value() -> CddlValue {
@@ -107,7 +108,7 @@ pub fn CddlValue::lookup_text(self : CddlValue, key : String) -> CddlValue? {
 }
 
 ///|
-pub fn CddlValue::size(self : CddlValue) -> Int? {
+pub fn CddlValue::size(self : CddlValue) -> Int32? {
   match self {
     TextValue(value) => Some(@utf8.encode(value[:]).length())
     BytesValue(value) => Some(value.length())

@@ -1,43 +1,45 @@
 ///|
 /// Source range uses zero-based character offsets and one-based line/column values.
+#derive(Debug, Eq)
 pub struct SourceSpan {
-  start : Int
-  end : Int
-  line : Int
-  column : Int
-} derive(Debug, Eq)
-
-///|
-pub fn source_span(
-  start : Int,
-  end : Int,
-  line : Int,
-  column : Int,
-) -> SourceSpan {
-  { start, end, line, column }
+  start : Int32
+  end : Int32
+  line : Int32
+  column : Int32
 }
 
 ///|
-pub fn SourceSpan::start(self : SourceSpan) -> Int {
+pub fn source_span(
+  start : Int32,
+  end : Int32,
+  line : Int32,
+  column : Int32,
+) -> SourceSpan {
+  { start, end, line, column, }
+}
+
+///|
+pub fn SourceSpan::start(self : SourceSpan) -> Int32 {
   self.start
 }
 
 ///|
-pub fn SourceSpan::end(self : SourceSpan) -> Int {
+pub fn SourceSpan::end(self : SourceSpan) -> Int32 {
   self.end
 }
 
 ///|
-pub fn SourceSpan::line(self : SourceSpan) -> Int {
+pub fn SourceSpan::line(self : SourceSpan) -> Int32 {
   self.line
 }
 
 ///|
-pub fn SourceSpan::column(self : SourceSpan) -> Int {
+pub fn SourceSpan::column(self : SourceSpan) -> Int32 {
   self.column
 }
 
 ///|
+#derive(Debug, Eq)
 pub(all) enum CddlErrorKind {
   LexicalError
   SyntaxError
@@ -50,16 +52,17 @@ pub(all) enum CddlErrorKind {
   ResourceLimit
   ValidationFailure
   JsonConversion
-} derive(Debug, Eq)
+}
 
 ///|
 /// Structured parser and schema error. Validation mismatches use
 /// `ValidationIssue`, because one value may produce more than one useful issue.
+#derive(Debug, Eq)
 pub struct CddlError {
   kind : CddlErrorKind
   message : String
   span : SourceSpan?
-} derive(Debug, Eq)
+}
 
 ///|
 pub fn CddlError::kind(self : CddlError) -> CddlErrorKind {
@@ -80,12 +83,13 @@ pub fn CddlError::span(self : CddlError) -> SourceSpan? {
 pub fn cddl_error(
   kind : CddlErrorKind,
   message : String,
-  span? : SourceSpan? = None,
+  span~ : SourceSpan? = None,
 ) -> CddlError {
-  { kind, message, span }
+  { kind, message, span, }
 }
 
 ///|
+#derive(Debug, Eq)
 pub(all) enum IssueCode {
   TypeMismatch
   LiteralMismatch
@@ -99,17 +103,18 @@ pub(all) enum IssueCode {
   UnknownReference
   RecursionLimit
   IssueLimit
-} derive(Debug, Eq)
+}
 
 ///|
 /// One validation mismatch with a stable code and JSON-Pointer-like path.
+#derive(Debug, Eq)
 pub struct ValidationIssue {
   code : IssueCode
   path : String
   expected : String
   actual : String
   message : String
-} derive(Debug, Eq)
+}
 
 ///|
 pub fn ValidationIssue::code(self : ValidationIssue) -> IssueCode {
@@ -144,5 +149,5 @@ pub fn validation_issue(
   actual : String,
   message : String,
 ) -> ValidationIssue {
-  { code, path, expected, actual, message }
+  { code, path, expected, actual, message, }
 }

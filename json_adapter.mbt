@@ -2,7 +2,7 @@
 fn json_to_cddl(
   input : Json,
   limits : CddlLimits,
-  depth : Int,
+  depth : Int32,
 ) -> Result[CddlValue, CddlError] {
   if depth > limits.max_depth() {
     return Err(cddl_error(ResourceLimit, "JSON nesting exceeds max_depth"))
@@ -60,7 +60,7 @@ fn json_to_cddl(
 #warnings("-deprecated")
 pub fn parse_json_value(
   source : String,
-  limits? : CddlLimits = cddl_limits(),
+  limits~ : CddlLimits = cddl_limits(),
 ) -> Result[CddlValue, CddlError] {
   if @utf8.encode(source[:]).length() > limits.max_source_bytes() {
     return Err(
@@ -82,8 +82,8 @@ pub fn parse_json_value(
 pub fn validate_json(
   document : Schema,
   source : String,
-  root? : String? = None,
-  limits? : CddlLimits = cddl_limits(),
+  root~ : String? = None,
+  limits~ : CddlLimits = cddl_limits(),
 ) -> Result[ValidationReport, CddlError] {
   let value = match parse_json_value(source, limits~) {
     Ok(value) => value

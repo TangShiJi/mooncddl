@@ -1,5 +1,6 @@
 ///|
 /// Predefined CDDL data types supported by the validator.
+#derive(Debug, Eq)
 pub(all) enum PrimitiveType {
   AnyType
   BoolType
@@ -13,11 +14,12 @@ pub(all) enum PrimitiveType {
   BytesType
   ArrayTypeName
   MapTypeName
-} derive(Debug, Eq)
+}
 
 ///|
 /// Implemented RFC 8610 control operators. Unsupported controls are rejected
 /// during parsing instead of being silently ignored.
+#derive(Debug, Eq)
 pub(all) enum ControlOperator {
   SizeControl
   LessThanControl
@@ -28,54 +30,56 @@ pub(all) enum ControlOperator {
   NotEqualControl
   AndControl
   WithinControl
-} derive(Debug, Eq)
+}
 
 ///|
 /// Cardinality attached to a group entry. `max = None` represents an
 /// unbounded upper limit.
+#derive(Debug, Eq)
 pub struct Occurrence {
-  min : Int
-  max : Int?
-} derive(Debug, Eq)
+  min : Int32
+  max : Int32?
+}
 
 ///|
-pub fn occurrence(min : Int, max : Int?) -> Occurrence {
-  { min, max }
+pub fn occurrence(min : Int32, max : Int32?) -> Occurrence {
+  { min, max, }
 }
 
 ///|
 pub fn once() -> Occurrence {
-  { min: 1, max: Some(1) }
+  { min: 1, max: Some(1), }
 }
 
 ///|
 pub fn optional() -> Occurrence {
-  { min: 0, max: Some(1) }
+  { min: 0, max: Some(1), }
 }
 
 ///|
 pub fn zero_or_more() -> Occurrence {
-  { min: 0, max: None }
+  { min: 0, max: None, }
 }
 
 ///|
 pub fn one_or_more() -> Occurrence {
-  { min: 1, max: None }
+  { min: 1, max: None, }
 }
 
 ///|
-pub fn Occurrence::min(self : Occurrence) -> Int {
+pub fn Occurrence::min(self : Occurrence) -> Int32 {
   self.min
 }
 
 ///|
-pub fn Occurrence::max(self : Occurrence) -> Int? {
+pub fn Occurrence::max(self : Occurrence) -> Int32? {
   self.max
 }
 
 ///|
 /// Parsed type expression. Group containers hold entries so the parser keeps
 /// cardinality and map-key semantics rather than flattening them away.
+#derive(Debug, Eq)
 pub(all) enum TypeExpr {
   Primitive(PrimitiveType)
   Literal(CddlValue)
@@ -86,7 +90,7 @@ pub(all) enum TypeExpr {
   MapSchema(Array[GroupEntry])
   TaggedSchema(Int64, TypeExpr)
   Controlled(TypeExpr, ControlOperator, TypeExpr)
-} derive(Debug, Eq)
+}
 
 ///|
 pub fn primitive(kind : PrimitiveType) -> TypeExpr {
@@ -144,19 +148,20 @@ pub fn controlled(
 ///|
 /// One array item or map member declaration. A missing key means an array
 /// item; a present key means a map entry.
+#derive(Debug, Eq)
 pub struct GroupEntry {
   key : TypeExpr?
   value : TypeExpr
   occurrence : Occurrence
-} derive(Debug, Eq)
+}
 
 ///|
 pub fn group_entry(
   value : TypeExpr,
-  key? : TypeExpr? = None,
-  occurrence? : Occurrence = once(),
+  key~ : TypeExpr? = None,
+  occurrence~ : Occurrence = once(),
 ) -> GroupEntry {
-  { key, value, occurrence }
+  { key, value, occurrence, }
 }
 
 ///|
@@ -175,15 +180,16 @@ pub fn GroupEntry::occurrence(self : GroupEntry) -> Occurrence {
 }
 
 ///|
+#derive(Debug, Eq)
 pub struct Rule {
   name : String
   value : TypeExpr
   span : SourceSpan
-} derive(Debug, Eq)
+}
 
 ///|
 pub fn rule(name : String, value : TypeExpr, span : SourceSpan) -> Rule {
-  { name, value, span }
+  { name, value, span, }
 }
 
 ///|
@@ -204,13 +210,14 @@ pub fn Rule::span(self : Rule) -> SourceSpan {
 ///|
 /// Immutable parsed schema. The first declared rule is the default entry
 /// point, matching common CDDL tooling behavior.
+#derive(Debug, Eq)
 pub struct Schema {
   rules : Array[Rule]
-} derive(Debug, Eq)
+}
 
 ///|
 pub fn schema(rules : Array[Rule]) -> Schema {
-  { rules: rules.copy() }
+  { rules: rules.copy(), }
 }
 
 ///|
