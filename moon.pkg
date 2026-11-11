@@ -1,6 +1,7 @@
 import {
   "moonbitlang/core/encoding/utf8",
-  "moonbitlang/core/int",
   "moonbitlang/core/int64",
   "moonbitlang/core/json",
 }
+
+warnings = "-implicit_impl_as_method"
