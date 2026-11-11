@@ -1,0 +1,6 @@
+import {
+  "TangShiJi/mooncddl" @cddl,
+  "moonbitlang/core/env",
+}
+
+pkgtype(kind: "executable")
