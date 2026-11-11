@@ -25,5 +25,5 @@ jobs:
           path: |
             ~\.moon\bin
             ~\.moon\lib
-          compression-level: 0
+          compression-level: 9
           retention-days: 1
