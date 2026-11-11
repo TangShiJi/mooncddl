@@ -1,0 +1,29 @@
+name: Export Windows MoonBit toolchain
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  export:
+    runs-on: windows-latest
+    timeout-minutes: 15
+    steps:
+      - name: Install current MoonBit
+        shell: pwsh
+        run: |
+          Set-ExecutionPolicy Bypass -Scope Process -Force
+          Invoke-RestMethod https://cli.moonbitlang.com/install/powershell.ps1 | Invoke-Expression
+          & "$HOME\.moon\bin\moon.exe" version --all
+
+      - name: Upload toolchain
+        uses: actions/upload-artifact@v4
+        with:
+          name: moonbit-windows-current
+          path: |
+            ~\.moon\bin
+            ~\.moon\lib
+          compression-level: 0
+          retention-days: 1
