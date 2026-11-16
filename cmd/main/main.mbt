@@ -1,6 +1,6 @@
 ///|
 fn print_usage() -> Unit {
-  println("MoonCDDL 0.2.0")
+  println("MoonCDDL 0.2.1")
   println("Usage:")
   println("  mooncddl validate-json <schema> <json> [root]")
   println("  mooncddl format <schema>")
