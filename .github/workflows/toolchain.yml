@@ -1,0 +1,23 @@
+name: Export development toolchain
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  export:
+    runs-on: windows-latest
+    steps:
+      - name: Install MoonBit
+        shell: pwsh
+        run: |
+          Set-ExecutionPolicy Bypass -Scope Process -Force
+          irm https://cli.moonbitlang.com/install/powershell.ps1 | iex
+      - name: Compress development runtime
+        shell: pwsh
+        run: |
+          Compress-Archive -Path "$HOME/.moon/bin", "$HOME/.moon/lib", "$HOME/.moon/include" -DestinationPath toolchain.zip -CompressionLevel Optimal
+      - uses: actions/upload-artifact@v4
+        with:
+          name: current-windows-toolchain
+          path: toolchain.zip
+          retention-days: 2
