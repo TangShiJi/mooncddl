@@ -21,7 +21,7 @@ jobs:
           mkdir "$RUNNER_TEMP/mooncddl-consumer"
           cd "$RUNNER_TEMP/mooncddl-consumer"
           moon new . --user external-check --name consumer
-          moon add TangShiJi/mooncddl@0.2.0
+          moon add TangShiJi/mooncddl@0.2.1
           mkdir acceptance
           printf '%s\n' \
             'import {' \
@@ -39,6 +39,10 @@ jobs:
             '  if !report.is_valid() {' \
             '    abort("installed package rejected valid JSON")' \
             '  }' \
+            '  let bad = @cddl.validate_json(document, "[\"bad\",\"ok\"]").unwrap()' \
+            '  if bad.is_valid() { abort("installed package accepted invalid JSON") }' \
+            '  let text = @cddl.decode_cbor(b"\x64\xef\xbb\xbfx").unwrap()' \
+            '  if text != @cddl.text_value("\u{FEFF}x") { abort("CBOR text lost FEFF") }' \
             '  println("external Mooncakes install passed")' \
             '}' > acceptance/main.mbt
           moon check --target all --deny-warn

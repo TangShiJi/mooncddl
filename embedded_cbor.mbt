@@ -61,7 +61,7 @@ fn CborReader::text(
   _self : CborReader,
   bytes : Bytes,
 ) -> String raise EmbeddedCborError {
-  @utf8.decode(bytes[:], ignore_bom=true) catch {
+  @utf8.decode(bytes[:], ignore_bom=false) catch {
     _ => raise EmbeddedCborError("invalid UTF-8 in CBOR text")
   }
 }

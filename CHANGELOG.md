@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.2.1 - 2026-11-16
+
+- Preserve leading U+FEFF characters when decoding CBOR text and indefinite text chunks.
+- Add a regression case covering decoded content and embedded .cbor/.size behavior.
+
 ## 0.2.0 - 2026-11-16
 
 - 将一致性目标改为 RFC 8610 完整基础语言，增加独立标准语法检查与逐章节验收追踪。

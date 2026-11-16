@@ -114,7 +114,7 @@ fn main {
       let root = if args.length() >= 4 { Some(args[3]) } else { None }
       run_example(args[2], root)
     }
-    "--version" | "version" => println("MoonCDDL 0.2.0")
+    "--version" | "version" => println("MoonCDDL 0.2.1")
     _ => {
       print_usage()
       @env.exit(2)

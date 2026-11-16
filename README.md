@@ -6,7 +6,7 @@ MoonBit 原生 CDDL 数据契约库：解析规则与泛型、校验 JSON/CBOR �
 
 ## 标准范围
 
-0.2.0 以 **RFC 8610 第 2、3 节及附录 A–E 完整基础语言**为一致性目标，取代 0.1 子集范围。包含标准语法、分组/PEG 组选择、泛型、socket/plug、增量、unwrap/枚举、major/Tag、全部 40 个 prelude 名称和 14 个控制符：
+0.2.1 以 **RFC 8610 第 2、3 节及附录 A–E 完整基础语言**为一致性目标，取代 0.1 子集范围。包含标准语法、分组/PEG 组选择、泛型、socket/plug、增量、unwrap/枚举、major/Tag、全部 40 个 prelude 名称和 14 个控制符：
 
 `.size .bits .regexp .cbor .cborseq .within .and .lt .le .gt .ge .eq .ne .default`
 
@@ -17,7 +17,7 @@ MoonBit 原生 CDDL 数据契约库：解析规则与泛型、校验 JSON/CBOR �
 使用当前 MoonBit 工具链：
 
 ```bash
-moon add TangShiJi/mooncddl@0.2.0
+moon add TangShiJi/mooncddl@0.2.1
 ```
 
 在使用方 moon.pkg：
@@ -39,7 +39,7 @@ assert_false(@cddl.validate_json(schema, "[\"bad\",\"ok\"]").unwrap().is_valid()
 
 CBOR 值可构造 CddlValue，或调用 decode_cbor / decode_cbor_sequence 再 validate。模型保留完整 CBOR 64 位整数域、字节、非文本键、简单值、浮点和 Tag。内置解码器服务于 .cbor/.cborseq，不提供编码器。
 
-[公开包](https://mooncakes.io/docs/TangShiJi/mooncddl%400.2.0)；[发布与全新消费者安装证据](docs/RELEASE_EVIDENCE.md)。
+[公开包](https://mooncakes.io/docs/TangShiJi/mooncddl%400.2.1)；[发布与全新消费者安装证据](docs/RELEASE_EVIDENCE.md)。
 
 ## 运行示例与 CLI
 
@@ -70,7 +70,7 @@ python -m pip install lxml==6.0.2
 python scripts/xsd_differential.py --cli <CLI路径>
 ```
 
-Windows CLI 为 _build/native/release/build/cmd/main/main.exe；CI 自动定位 Linux 产物。66 个单元测试在四目标分别运行；另有 41 个 JSON 标准夹具、34 个 XSD 对照、500 份畸形规则、256 份 CBOR/正则输入与 200 组数值不变量。覆盖组、cut、泛型、prelude、全部控制符与错误边界。独立实现差异完整保留，不伪称全部一致。
+Windows CLI 为 _build/native/release/build/cmd/main/main.exe；CI 自动定位 Linux 产物。67 个单元测试在四目标分别运行；另有 41 个 JSON 标准夹具、34 个 XSD 对照、500 份畸形规则、256 份 CBOR/正则输入与 200 组数值不变量。覆盖组、cut、泛型、prelude、全部控制符与错误边界。独立实现差异完整保留，不伪称全部一致。
 
 Actions 执行格式、检查、构建、测试、示例和对照，上传报告；发布后执行不检出本仓库的全新消费者安装。[性能](docs/BENCHMARKS.md) 仅作回归基线。
 

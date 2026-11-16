@@ -1,4 +1,20 @@
 ///|
+test "CBOR text preserves leading FEFF in each string chunk" {
+  assert_eq(decode_cbor(b"\x64\xef\xbb\xbfx"), Ok(TextValue("\u{FEFF}x")))
+  assert_eq(
+    decode_cbor(b"\x7f\x63\xef\xbb\xbf\x61x\xff"),
+    Ok(TextValue("\u{FEFF}x")),
+  )
+  let schema = parse_cddl("root = bstr .cbor tstr .size 4")
+  // Parentheses delimit the .cbor controller under the standard grammar.
+  assert_true(schema is Err(_))
+  let schema = parse_cddl("root = bstr .cbor (tstr .size 4)").unwrap()
+  assert_true(
+    validate(schema, BytesValue(b"\x64\xef\xbb\xbfx")).unwrap().is_valid(),
+  )
+}
+
+///|
 test "embedded CBOR accepts one item and rejects trailing or malformed data" {
   let document = parse_cddl("root = bstr .cbor {1: uint}").unwrap()
   assert_true(
