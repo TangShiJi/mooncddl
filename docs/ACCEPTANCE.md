@@ -1,28 +1,15 @@
-# 0.1.0 验收清单
+# 0.2.0 验收清单
 
-| 验收项 | 可复现证据 | 状态 |
-|---|---|---:|
-| MoonBit 为主要实现语言 | 根包、CLI、样例、基准均为 `.mbt` | 通过 |
-| 有效源码超过 1000 行 | 生产 MoonBit 源码超过 3000 行（库、CLI、样例、基准），不含测试与文档 | 通过 |
-| 10 个以上有效提交 | 每笔提交对应模型、词法、解析、校验、格式化、适配器、生成器、CLI、样例、质量或 CI | 通过 |
-| 核心功能可运行 | `moon check --target all --deny-warn` | 通过 |
-| 完整核心测试 | `moon test --target all --deny-warn` | 通过 |
-| 真实下游场景 | `examples/json_api`、`examples/cbor_iot`、`examples/fixture_generation` | 通过 |
-| 畸形输入稳定性 | 500 份确定性畸形输入，不 panic | 通过 |
-| 性能证据 | `benchmarks/validation` 与 `BENCHMARKS.md` | 通过 |
-| CI | GitHub Actions 执行格式、四目标检查/测试、包审计和样例 | 通过 |
-| OSI 许可证 | Apache-2.0 | 通过 |
-| mooncakes.io 公开发布 | [`TangShiJi/mooncddl@0.1.0`](https://mooncakes.io/docs/TangShiJi/mooncddl%400.1.0)，服务端 `build_status=success` | 通过 |
-| 独立消费者安装 | 仓库外新模块执行 `moon add`，再经四目标检查/测试及原生运行 | 通过 |
+| 要求 | 核对方式与产物 |
+|---|---|
+| MoonBit 为主 | 根目录 .mbt 为生产实现；Python 仅生成数据与独立对照；不依赖其他语言运行时 |
+| 公开仓库和清晰提交 | https://github.com/TangShiJi/mooncddl ，保留历史与实质变更，不强制覆盖历史 |
+| 声明核心功能 | RFC 8610 完整基础语言目标；逐章节追踪和行为标准见 STANDARD_CONFORMANCE.md |
+| README 可复现 | 固定包版本、导入和泛型示例、CLI、限制与错误语义 |
+| 持续集成 | ci.yml 格式、检查、四目标测试、Release 构建、四例、独立对照和报告 |
+| 可运行示例 | json_api、cbor_iot、fixture_generation、standard_contract，带行为断言 |
+| 核心测试 | 66 个测试/目标、41 JSON 标准夹具、34 XSD 对照、畸形输入与资源边界 |
+| 公开发布可安装 | TangShiJi/mooncddl@0.2.0；发布后独立消费者不检出本仓库 |
+| OSI 许可与来源 | Apache-2.0；NOTICE 与 Unicode 数据许可；非参考实现移植 |
 
-## 直接行为标准
-
-1. 合法多规则 CDDL 必须得到可查询的 `Schema`；重复规则、未知引用、倒置范围和未支持控制符必须失败；
-2. 合法 JSON/CBOR 风格值必须通过；类型、范围、长度、缺失、多余字段和 Tag 错误必须返回具体路径；
-3. 选择分支失败只产生聚合诊断，不把尝试分支的噪声泄漏给调用者；
-4. 达到递归、容器或诊断上限时必须受控返回，不得无限递归或无界增长；
-5. `format_cddl(parse_cddl(x))` 的输出再次格式化必须字节一致；
-6. `generate_example` 只返回能被指定规则重新校验通过的值；
-7. 公共发布完成后，必须在仓库外的全新目录通过 Mooncakes 依赖解析与编译，才可将发布项标记为通过。
-
-发布与消费者运行的可点击记录见 [RELEASE_EVIDENCE.md](RELEASE_EVIDENCE.md)。
+通过标准按行为判断，不用行数、数量和速度代替功能。全部流程结果、提交及公开地址见 RELEASE_EVIDENCE.md。最终赛事判定由评审方作出。

@@ -1,23 +1,13 @@
 # 性能回归基线
 
-## 场景
+场景：一次解析遥测规则，对四成员映射执行 100000 次完整验证，每次创建报告。含长度、数值、可选字段和开放扩展；源码 benchmarks/validation。
 
-基准先解析一次遥测 CDDL，随后对含 4 个成员的映射执行 100,000 次完整校验。规则包含文本长度、整数范围、可选字段和开放扩展字段，代码位于 `benchmarks/validation`。
+复现：moon build --target native --release benchmarks/validation，重复运行 _build/native/release/build/benchmarks/validation/validation.exe，由操作系统计时；统计包括进程启动，不包括编译。
 
-## 复现
+## 0.2.0，2026-11-16
 
-```bash
-moon build --target native --release
-moon run --target native --release benchmarks/validation
-```
+Windows x64；MoonBit moonc 0.10.20+65efd5b93，native Release。5 次进程墙钟耗时：844.27、1506.23、740.93、743.70、733.46 ms；中位数 743.70 ms，约 134463 次/秒。机器负载造成明显离群值，因此保留所有样本。
 
-如需排除构建系统启动时间，可直接重复运行生成的原生可执行文件并由操作系统计时。
+旧版 0.1.0 的历史中位数为 140.91 ms。新增标准 PEG/通用组语义的实现当前更慢，不能把旧值作为新版本数据或宣称性能领先。此次以正确性、预算和可重现性优先；后续在保持语义的前提下缓存解析后的组计划、减少匹配状态分配，并用相同语料检查回归。
 
-## 2026-11-11 基线
-
-- 环境：Windows x64，MoonBit native release；
-- 样本：100,000 次验证，每次均创建 `ValidationReport`；
-- 5 次耗时：155.05、140.91、139.08、135.91、149.96 ms；
-- 中位数：140.91 ms，约 709,673 次验证/秒。
-
-这些数字用于发现本项目后续版本的明显退化。它不是与其他语言或实现的公平横向比较；不同 CPU、工具链和输入结构会改变结果。
+这是单一场景的本地基线，不能证明大协议吞吐或相对其他实现的优势；极端歧义输入仍受操作预算约束。
