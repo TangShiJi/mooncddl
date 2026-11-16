@@ -12,6 +12,11 @@ pub(all) enum CddlValue {
   ArrayValue(Array[CddlValue])
   MapValue(Array[(CddlValue, CddlValue)])
   TaggedValue(Int64, CddlValue)
+  UnsignedValue(UInt64)
+  NegativeValue(UInt64)
+  WideTagValue(UInt64, CddlValue)
+  SimpleValue(Int32)
+  EncodedFloat(Int32, Double)
 }
 
 ///|
@@ -71,6 +76,11 @@ pub fn CddlValue::kind_name(self : CddlValue) -> String {
     ArrayValue(_) => "array"
     MapValue(_) => "map"
     TaggedValue(_, _) => "tag"
+    WideTagValue(_, _) => "tag"
+    UnsignedValue(_) => "uint"
+    NegativeValue(_) => "nint"
+    SimpleValue(_) => "simple"
+    EncodedFloat(_, _) => "float"
   }
 }
 
@@ -132,5 +142,11 @@ pub fn CddlValue::describe(self : CddlValue) -> String {
     ArrayValue(value) => "array(" + value.length().to_string() + " items)"
     MapValue(value) => "map(" + value.length().to_string() + " entries)"
     TaggedValue(tag, _) => "tag(" + tag.to_string() + ")"
+    WideTagValue(tag, _) => "tag(" + tag.to_string() + ")"
+    UnsignedValue(value) => value.to_string()
+    NegativeValue(value) => "-1-" + value.to_string()
+    SimpleValue(value) => "simple(" + value.to_string() + ")"
+    EncodedFloat(width, value) =>
+      "float" + width.to_string() + "(" + value.to_string() + ")"
   }
 }

@@ -1,0 +1,5 @@
+import {
+  "TangShiJi/mooncddl" @cddl,
+}
+
+pkgtype(kind: "executable")

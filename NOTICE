@@ -1,0 +1,16 @@
+MoonCDDL
+Copyright 2026 TangShiJi. Original implementation under Apache License 2.0.
+
+Follows RFC 8610: https://www.rfc-editor.org/rfc/rfc8610.html
+XSD regex: https://www.w3.org/TR/xmlschema-2/#regexs
+No reference implementation is ported.
+
+unicode_data.mbt is generated from Unicode 13.0.0 category data exposed by
+Python 3.9 unicodedata and Blocks-13.0.0.txt:
+https://github.com/unicode-org/unicodetools/blob/main/unicodetools/data/ucd/13.0.0-Update/Blocks.txt
+Copyright and permission: third_party/UNICODE-LICENSE.txt.
+Original Blocks source header retained in third_party/Blocks-13.0.0.txt.
+Regenerate with scripts/generate_unicode.py (requires Unicode 13.0.0).
+
+anweiss/cddl (MIT), lxml (BSD) and libxml2 (MIT) are independent test tools.
+Their implementation source is not copied or linked into the core library.

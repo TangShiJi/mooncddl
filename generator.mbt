@@ -21,6 +21,7 @@ fn requested_size(expression : TypeExpr) -> Int32? {
 ///|
 fn sized_witness(target : TypeExpr, size : Int32) -> CddlValue? {
   match target {
+    Primitive(UintType) => Some(integer_value(0L))
     Primitive(TextType) => Some(text_value(repeated_text(size)))
     Primitive(BytesType) =>
       Some(bytes_value(Bytes::from_array(Array::make(size, (0x00 : Byte))[:])))
@@ -77,6 +78,31 @@ fn generate_expression(
     )
   }
   match expression {
+    ValueRange(lower, _, _) => Ok(lower)
+    DynamicRange(lower, _, _) =>
+      generate_expression(document, lower, limits, stack, depth + 1)
+    MajorSchema(major, argument) => major_witness(major, argument)
+    Application(_, _) | Unwrap(_) =>
+      match resolve_head(document, expression, 0) {
+        Some(value) =>
+          generate_expression(document, value, limits, stack, depth + 1)
+        None => Err(cddl_error(UnknownRule, "cannot resolve generic or unwrap"))
+      }
+    Enumeration(body) =>
+      generate_expression(
+        document,
+        Choice(enumeration_members(document, body, 0)),
+        limits,
+        stack,
+        depth + 1,
+      )
+    GroupSchema(_) =>
+      Err(
+        cddl_error(
+          UnsupportedFeature,
+          "group witness generation requires a container",
+        ),
+      )
     Primitive(kind) =>
       Ok(
         match kind {
@@ -129,6 +155,15 @@ fn generate_expression(
     ArraySchema(entries) => {
       let output : Array[CddlValue] = []
       for entry in entries {
+        if entry.occurrence().min() >
+          limits.max_container_items() - output.length() {
+          return Err(
+            cddl_error(
+              ResourceLimit,
+              "generated array exceeds max_container_items",
+            ),
+          )
+        }
         for _index = 0; _index < entry.occurrence().min(); _index = _index + 1 {
           match
             generate_expression(
@@ -148,6 +183,15 @@ fn generate_expression(
     MapSchema(declarations) => {
       let output : Array[(CddlValue, CddlValue)] = []
       for declaration in declarations {
+        if declaration.occurrence().min() >
+          limits.max_container_items() - output.length() {
+          return Err(
+            cddl_error(
+              ResourceLimit,
+              "generated map exceeds max_container_items",
+            ),
+          )
+        }
         let key_expression = match declaration.key() {
           Some(value) => value
           None => primitive(TextType)
@@ -188,6 +232,32 @@ fn generate_expression(
       }
     Controlled(target, operator, argument) =>
       match operator {
+        CborControl | CborSequenceControl | RegexpControl =>
+          Err(
+            cddl_error(
+              UnsupportedFeature,
+              "regex or embedded CBOR witness synthesis requires a supplied fixture",
+            ),
+          )
+        TagContentControl => {
+          let body = match
+            generate_expression(document, argument, limits, stack, depth + 1) {
+            Ok(value) => value
+            Err(error) => return Err(error)
+          }
+          match target {
+            MajorSchema(6, tag) =>
+              Ok(
+                match tag {
+                  Some(n) if n <= 9223372036854775807UL =>
+                    TaggedValue(n.reinterpret_as_int64(), body)
+                  Some(n) => WideTagValue(n, body)
+                  None => TaggedValue(0L, body)
+                },
+              )
+            _ => Err(cddl_error(ValidationFailure, "invalid tag target"))
+          }
+        }
         EqualControl =>
           match argument {
             Literal(value) => Ok(value)
@@ -199,7 +269,7 @@ fn generate_expression(
                 ),
               )
           }
-        NotEqualControl => {
+        NotEqualControl | DefaultControl => {
           let candidate = match
             generate_expression(document, target, limits, stack, depth + 1) {
             Ok(value) => value
@@ -225,15 +295,28 @@ fn generate_expression(
         SizeControl =>
           match requested_size(argument) {
             Some(size) =>
-              match sized_witness(target, size) {
-                Some(value) => Ok(value)
-                None =>
-                  Err(
-                    cddl_error(
-                      ValidationFailure,
-                      "example generator supports .size on direct text, bytes, array, and map types",
-                    ),
-                  )
+              if size > limits.max_container_items() {
+                Err(
+                  cddl_error(
+                    ResourceLimit,
+                    "generated size exceeds max_container_items",
+                  ),
+                )
+              } else {
+                match
+                  sized_witness(
+                    resolve_head(document, target, 0).unwrap_or(target),
+                    size,
+                  ) {
+                  Some(value) => Ok(value)
+                  None =>
+                    Err(
+                      cddl_error(
+                        ValidationFailure,
+                        "example generator supports .size on direct text, bytes, array, and map types",
+                      ),
+                    )
+                }
               }
             None =>
               Err(
@@ -259,6 +342,12 @@ fn generate_expression(
           }
         AndControl | WithinControl =>
           generate_expression(document, argument, limits, stack, depth + 1)
+        BitsControl =>
+          match target {
+            Primitive(UintType) => Ok(integer_value(0L))
+            Primitive(BytesType) => Ok(bytes_value(Bytes::from_array([])))
+            _ => generate_expression(document, target, limits, stack, depth + 1)
+          }
       }
   }
 }

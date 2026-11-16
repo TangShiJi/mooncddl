@@ -3,7 +3,7 @@ test "JSON adapter validates an API request without a second schema language" {
   let schema_source =
     #|request = {
     #|  id: uint,
-    #|  title: tstr .size 1..80,
+    #|  title: tstr .size (1..80),
     #|  ? urgent: bool,
     #|}
   let document = parse_cddl(schema_source).unwrap()

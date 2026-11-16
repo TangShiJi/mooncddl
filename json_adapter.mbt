@@ -1,4 +1,5 @@
 ///|
+#warnings("-deprecated")
 fn json_to_cddl(
   input : Json,
   limits : CddlLimits,
@@ -11,7 +12,30 @@ fn json_to_cddl(
     Null => Ok(null_value())
     True => Ok(bool_value(true))
     False => Ok(bool_value(false))
-    Number(number, ..) =>
+    Number(number, repr~) => {
+      if repr is Some(raw) &&
+        !raw.contains(".") &&
+        !raw.contains("e") &&
+        !raw.contains("E") {
+        match parse_wide_integer(raw.to_array()) {
+          Some(exact) => return Ok(exact)
+          None =>
+            return Err(
+              cddl_error(
+                JsonConversion,
+                "JSON integer exceeds the CBOR 64-bit integer domain; supply a tagged bignum through CddlValue",
+              ),
+            )
+        }
+      }
+      if number != number || number == 1.0 / 0.0 || number == -1.0 / 0.0 {
+        return Err(
+          cddl_error(
+            JsonConversion,
+            "JSON numeric value is outside finite binary64",
+          ),
+        )
+      }
       if number == number.floor() &&
         number >= -9007199254740991.0 &&
         number <= 9007199254740991.0 {
@@ -19,6 +43,7 @@ fn json_to_cddl(
       } else {
         Ok(float_value(number))
       }
+    }
     String(value) => Ok(text_value(value))
     Array(items) => {
       if items.length() > limits.max_container_items() {
@@ -55,8 +80,8 @@ fn json_to_cddl(
 
 ///|
 /// Parse JSON into the format-neutral value model. JSON integers that can be
-/// represented exactly by IEEE-754 are retained as integers; other numbers
-/// remain floating-point values instead of being silently truncated.
+/// represented in the CBOR integer domain retain their exact lexical value;
+/// fractional/exponent forms use finite IEEE-754 binary64 without truncation.
 #warnings("-deprecated")
 pub fn parse_json_value(
   source : String,
@@ -89,5 +114,5 @@ pub fn validate_json(
     Ok(value) => value
     Err(error) => return Err(error)
   }
-  validate(document, value, root~, limits~)
+  validate(document, value, root~, limits~, json_mode=true)
 }

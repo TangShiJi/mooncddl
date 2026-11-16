@@ -30,6 +30,12 @@ pub(all) enum ControlOperator {
   NotEqualControl
   AndControl
   WithinControl
+  BitsControl
+  DefaultControl
+  TagContentControl
+  CborControl
+  CborSequenceControl
+  RegexpControl
 }
 
 ///|
@@ -90,6 +96,13 @@ pub(all) enum TypeExpr {
   MapSchema(Array[GroupEntry])
   TaggedSchema(Int64, TypeExpr)
   Controlled(TypeExpr, ControlOperator, TypeExpr)
+  GroupSchema(Array[Array[GroupEntry]])
+  Application(String, Array[TypeExpr])
+  Unwrap(TypeExpr)
+  Enumeration(TypeExpr)
+  MajorSchema(Int32, UInt64?)
+  ValueRange(CddlValue, CddlValue, Bool)
+  DynamicRange(TypeExpr, TypeExpr, Bool)
 }
 
 ///|
@@ -153,6 +166,7 @@ pub struct GroupEntry {
   key : TypeExpr?
   value : TypeExpr
   occurrence : Occurrence
+  cut : Bool
 }
 
 ///|
@@ -160,8 +174,14 @@ pub fn group_entry(
   value : TypeExpr,
   key~ : TypeExpr? = None,
   occurrence~ : Occurrence = once(),
+  cut~ : Bool = false,
 ) -> GroupEntry {
-  { key, value, occurrence, }
+  { key, value, occurrence, cut, }
+}
+
+///|
+pub fn GroupEntry::is_cut(self : GroupEntry) -> Bool {
+  self.cut
 }
 
 ///|
@@ -185,11 +205,22 @@ pub struct Rule {
   name : String
   value : TypeExpr
   span : SourceSpan
+  parameters : Array[String]
 }
 
 ///|
-pub fn rule(name : String, value : TypeExpr, span : SourceSpan) -> Rule {
-  { name, value, span, }
+pub fn rule(
+  name : String,
+  value : TypeExpr,
+  span : SourceSpan,
+  parameters~ : Array[String] = [],
+) -> Rule {
+  { name, value, span, parameters, }
+}
+
+///|
+pub fn Rule::parameters(self : Rule) -> Array[String] {
+  self.parameters.copy()
 }
 
 ///|
@@ -241,7 +272,13 @@ pub fn Schema::lookup(self : Schema, name : String) -> TypeExpr? {
       return Some(item.value())
     }
   }
-  None
+  if name.has_prefix("$$") {
+    Some(GroupSchema([[]]))
+  } else if name.has_prefix("$") {
+    Some(Choice([]))
+  } else {
+    prelude_expression(name)
+  }
 }
 
 ///|
@@ -275,6 +312,11 @@ pub fn control_from_name(name : String) -> ControlOperator? {
     "ne" => Some(NotEqualControl)
     "and" => Some(AndControl)
     "within" => Some(WithinControl)
+    "bits" => Some(BitsControl)
+    "default" => Some(DefaultControl)
+    "cbor" => Some(CborControl)
+    "cborseq" => Some(CborSequenceControl)
+    "regexp" => Some(RegexpControl)
     _ => None
   }
 }

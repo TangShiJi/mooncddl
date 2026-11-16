@@ -26,8 +26,8 @@ test "RFC 8610 core examples validate expected JSON values" {
 test "CDDL controls compose without being silently skipped" {
   let document = parse_cddl(
     (
-      #|token = tstr .size 4..12
-      #|level = int .ge 1 .le 5
+      #|token = tstr .size (4..12)
+      #|level = (int .ge 1) .le 5
       #|mode = tstr .ne "disabled"
     ),
   ).unwrap()
@@ -57,7 +57,7 @@ test "CDDL controls compose without being silently skipped" {
 test "canonical formatting is idempotent across representative grammar" {
   let sources : Array[String] = [
     "value = int / tstr / nil", "map = { 1 => bstr, ? 2 => bool, * tstr => any }",
-    "array = [2*5 uint, ? tstr]", "tagged = #6.18([bstr, bstr])", "bounded = tstr .size 1..64",
+    "array = [2*5 uint, ? tstr]", "tagged = #6.18([bstr, bstr])", "bounded = tstr .size (1..64)",
   ]
   for source in sources {
     let once_formatted = format_cddl(parse_cddl(source).unwrap()).unwrap()

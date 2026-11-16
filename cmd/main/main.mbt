@@ -1,10 +1,11 @@
 ///|
 fn print_usage() -> Unit {
-  println("MoonCDDL 0.1.0")
+  println("MoonCDDL 0.2.0")
   println("Usage:")
   println("  mooncddl validate-json <schema> <json> [root]")
   println("  mooncddl format <schema>")
   println("  mooncddl example <schema> [root]")
+  println("  mooncddl check-syntax <schema>")
 }
 
 ///|
@@ -22,14 +23,14 @@ fn run_validate(
     Ok(value) => value
     Err(error) => {
       print_error("schema error", error.message())
-      return
+      @env.exit(2)
     }
   }
   let report = match @cddl.validate_json(document, json_source, root~) {
     Ok(value) => value
     Err(error) => {
       print_error("input error", error.message())
-      return
+      @env.exit(2)
     }
   }
   if report.is_valid() {
@@ -43,6 +44,7 @@ fn run_validate(
     if report.truncated() {
       println("additional issues were truncated by max_issues")
     }
+    @env.exit(1)
   }
 }
 
@@ -52,12 +54,15 @@ fn run_format(schema_source : String) -> Unit {
     Ok(value) => value
     Err(error) => {
       print_error("schema error", error.message())
-      return
+      @env.exit(2)
     }
   }
   match @cddl.format_cddl(document) {
     Ok(value) => println(value)
-    Err(error) => print_error("format error", error.message())
+    Err(error) => {
+      print_error("format error", error.message())
+      @env.exit(2)
+    }
   }
 }
 
@@ -67,12 +72,15 @@ fn run_example(schema_source : String, root : String?) -> Unit {
     Ok(value) => value
     Err(error) => {
       print_error("schema error", error.message())
-      return
+      @env.exit(2)
     }
   }
   match @cddl.generate_example(document, root~) {
     Ok(value) => println(value.describe())
-    Err(error) => print_error("generation error", error.message())
+    Err(error) => {
+      print_error("generation error", error.message())
+      @env.exit(2)
+    }
   }
 }
 
@@ -84,6 +92,19 @@ fn main {
     return
   }
   match args[1] {
+    "check-syntax" if args.length() == 3 =>
+      match @cddl.check_standard_syntax(args[2]) {
+        Ok(document) =>
+          println(
+            "RFC 8610 syntax accepted (" +
+            document.rule_names().length().to_string() +
+            " rules); runtime compatibility is checked separately",
+          )
+        Err(error) => {
+          print_error("syntax error", error.message())
+          @env.exit(2)
+        }
+      }
     "validate-json" if args.length() >= 4 => {
       let root = if args.length() >= 5 { Some(args[4]) } else { None }
       run_validate(args[2], args[3], root)
@@ -93,7 +114,10 @@ fn main {
       let root = if args.length() >= 4 { Some(args[3]) } else { None }
       run_example(args[2], root)
     }
-    "--version" | "version" => println("MoonCDDL 0.1.0")
-    _ => print_usage()
+    "--version" | "version" => println("MoonCDDL 0.2.0")
+    _ => {
+      print_usage()
+      @env.exit(2)
+    }
   }
 }

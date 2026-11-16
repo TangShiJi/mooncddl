@@ -5,6 +5,7 @@
 pub(all) enum TokenKind {
   Identifier(String)
   IntegerLiteral(Int64)
+  NumberLiteral(CddlValue)
   TextLiteral(String)
   ByteLiteral(Bytes)
   Control(String)
@@ -27,6 +28,11 @@ pub(all) enum TokenKind {
   Star
   Plus
   Hash
+  LessAngle
+  GreaterAngle
+  Tilde
+  Ampersand
+  Cut
   Newline
   EndOfInput
 }
@@ -157,10 +163,17 @@ fn Lexer::read_identifier(
   line : Int32,
   column : Int32,
 ) -> Token {
-  while (match self.peek() {
-          Some(value) => is_identifier_continue(value)
-          None => false
-        }) {
+  let parser : StandardParser = {
+    chars: self.chars,
+    limits: self.limits,
+    features: [],
+    position: start,
+    furthest: start,
+    operations: 0,
+    exhausted: false,
+  }
+  ignore(parser.identifier())
+  while self.index < parser.position {
     ignore(self.advance())
   }
   let value = chars_to_string(self.chars[start:self.index].to_owned())
@@ -223,6 +236,117 @@ fn Lexer::read_integer(
   line : Int32,
   column : Int32,
 ) -> Result[Token, CddlError] {
+  let mut back = start - 1
+  while back >= 0 &&
+        (is_ascii_digit(self.chars[back]) || self.chars[back] == '.') {
+    back -= 1
+  }
+  let tag_number = back >= 0 && self.chars[back] == '#'
+  if tag_number {
+    let parser : StandardParser = {
+      chars: self.chars,
+      limits: self.limits,
+      features: [],
+      position: start,
+      furthest: start,
+      operations: 0,
+      exhausted: false,
+    }
+    if parser.uint() {
+      match parse_wide_integer(self.chars[start:parser.position].to_owned()) {
+        Some(value) => {
+          while self.index < parser.position {
+            ignore(self.advance())
+          }
+          return Ok(
+            self.token(
+              match value {
+                IntegerValue(n) => IntegerLiteral(n)
+                _ => NumberLiteral(value)
+              },
+              start,
+              line,
+              column,
+            ),
+          )
+        }
+        None =>
+          return Err(
+            lex_error(
+              "CBOR additional information exceeds UInt64",
+              source_span(start, parser.position, line, column),
+            ),
+          )
+      }
+    }
+  }
+  if !tag_number {
+    let parser : StandardParser = {
+      chars: self.chars,
+      limits: self.limits,
+      features: [],
+      position: start,
+      furthest: start,
+      operations: 0,
+      exhausted: false,
+    }
+    if parser.number() {
+      let raw = self.chars[start:parser.position].to_owned()
+      let text = chars_to_string(raw)
+      let hexadecimal = text.contains("x") || text.contains("X")
+      let is_float = text.contains(".") ||
+        (if hexadecimal {
+          text.contains("p") || text.contains("P")
+        } else {
+          text.contains("e") || text.contains("E")
+        })
+      if is_float {
+        let parsed = parse_float_literal(raw)
+        match parsed {
+          Some(value) => {
+            while self.index < parser.position {
+              ignore(self.advance())
+            }
+            return Ok(
+              self.token(NumberLiteral(FloatValue(value)), start, line, column),
+            )
+          }
+          None =>
+            return Err(
+              lex_error(
+                "invalid floating-point literal",
+                source_span(start, parser.position, line, column),
+              ),
+            )
+        }
+      }
+      match parse_wide_integer(raw) {
+        Some(value) => {
+          while self.index < parser.position {
+            ignore(self.advance())
+          }
+          return Ok(
+            self.token(
+              match value {
+                IntegerValue(n) => IntegerLiteral(n)
+                _ => NumberLiteral(value)
+              },
+              start,
+              line,
+              column,
+            ),
+          )
+        }
+        None =>
+          return Err(
+            lex_error(
+              "integer exceeds CBOR's -2**64 through 2**64-1 range",
+              source_span(start, parser.position, line, column),
+            ),
+          )
+      }
+    }
+  }
   let negative = self.peek() == Some('-')
   if negative {
     ignore(self.advance())
@@ -293,17 +417,24 @@ fn Lexer::read_text(
   start : Int32,
   line : Int32,
   column : Int32,
+  quote~ : Char = '"',
 ) -> Result[Token, CddlError] {
   ignore(self.advance())
   let output : Array[Char] = []
   while self.peek() is Some(_) {
     let current = self.advance().unwrap()
-    if current == '"' {
+    if current == quote {
+      if quote == '\'' {
+        let text = chars_to_string(output)
+        return Ok(
+          self.token(ByteLiteral(@utf8.encode(text[:])), start, line, column),
+        )
+      }
       return Ok(
         self.token(TextLiteral(chars_to_string(output)), start, line, column),
       )
     }
-    if current == '\n' || current == '\r' {
+    if (current == '\n' || current == '\r') && quote == '"' {
       return Err(
         lex_error(
           "text literal cannot contain an unescaped newline",
@@ -314,6 +445,52 @@ fn Lexer::read_text(
     if current == '\\' {
       let escaped = match self.advance() {
         Some('"') => '"'
+        Some('\'') if quote == '\'' => '\''
+        Some('u') => {
+          let first = match self.read_unicode_quad() {
+            Some(value) => value
+            None =>
+              return Err(
+                lex_error(
+                  "invalid Unicode escape",
+                  source_span(start, self.index, line, column),
+                ),
+              )
+          }
+          let code = if first >= 0xd800 && first <= 0xdbff {
+            if self.advance() != Some('\\') || self.advance() != Some('u') {
+              return Err(
+                lex_error(
+                  "high surrogate requires a low surrogate",
+                  source_span(start, self.index, line, column),
+                ),
+              )
+            }
+            match self.read_unicode_quad() {
+              Some(second) if second >= 0xdc00 && second <= 0xdfff =>
+                0x10000 + ((first - 0xd800) << 10) + second - 0xdc00
+              _ =>
+                return Err(
+                  lex_error(
+                    "invalid low surrogate",
+                    source_span(start, self.index, line, column),
+                  ),
+                )
+            }
+          } else {
+            first
+          }
+          match code.to_char() {
+            Some(value) => value
+            None =>
+              return Err(
+                lex_error(
+                  "invalid Unicode scalar",
+                  source_span(start, self.index, line, column),
+                ),
+              )
+          }
+        }
         Some('\\') => '\\'
         Some('/') => '/'
         Some('b') => '\b'
@@ -385,6 +562,10 @@ fn Lexer::read_hex_bytes(
     if current == ' ' || current == '\t' || current == '\n' || current == '\r' {
       continue
     }
+    if current == ';' {
+      self.skip_comment()
+      continue
+    }
     if !is_hex_digit(current) {
       return Err(
         lex_error(
@@ -442,6 +623,13 @@ fn Lexer::next_token(self : Lexer) -> Result[Token, CddlError] {
     }
     Some('h') if self.peek_next() == Some('\'') =>
       self.read_hex_bytes(start, line, column)
+    Some('H') if self.peek_next() == Some('\'') =>
+      self.read_hex_bytes(start, line, column)
+    Some('b' | 'B') if self.index + 3 < self.chars.length() &&
+      self.chars[self.index + 1] == '6' &&
+      self.chars[self.index + 2] == '4' &&
+      self.chars[self.index + 3] == '\'' =>
+      self.read_base64_bytes(start, line, column)
     Some(value) if is_identifier_start(value) =>
       Ok(self.read_identifier(start, line, column))
     Some(value) if is_ascii_digit(value) =>
@@ -451,6 +639,7 @@ fn Lexer::next_token(self : Lexer) -> Result[Token, CddlError] {
         None => false
       }) => self.read_integer(start, line, column)
     Some('"') => self.read_text(start, line, column)
+    Some('\'') => self.read_text(start, line, column, quote='\'')
     Some('.') if self.peek_next() == Some('.') => {
       ignore(self.advance())
       ignore(self.advance())
@@ -534,6 +723,26 @@ fn Lexer::next_token(self : Lexer) -> Result[Token, CddlError] {
     Some('#') => {
       ignore(self.advance())
       Ok(self.token(Hash, start, line, column))
+    }
+    Some('<') => {
+      ignore(self.advance())
+      Ok(self.token(LessAngle, start, line, column))
+    }
+    Some('>') => {
+      ignore(self.advance())
+      Ok(self.token(GreaterAngle, start, line, column))
+    }
+    Some('~') => {
+      ignore(self.advance())
+      Ok(self.token(Tilde, start, line, column))
+    }
+    Some('&') => {
+      ignore(self.advance())
+      Ok(self.token(Ampersand, start, line, column))
+    }
+    Some('^') => {
+      ignore(self.advance())
+      Ok(self.token(Cut, start, line, column))
     }
     Some(value) => {
       ignore(self.advance())

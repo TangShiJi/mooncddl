@@ -3,7 +3,7 @@ fn main {
   let source =
     #|create-job = {
     #|  id: uint,
-    #|  title: tstr .size 1..80,
+    #|  title: tstr .size (1..80),
     #|  ? priority: 1..5,
     #|}
   let document = @cddl.parse_cddl(source).unwrap()

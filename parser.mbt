@@ -72,7 +72,13 @@ fn Parser::parse_occurrence(self : Parser) -> Result[Occurrence, CddlError] {
     }
     Star => {
       ignore(self.advance())
-      Ok(zero_or_more())
+      match self.current_kind() {
+        IntegerLiteral(maximum) if maximum >= 0L && maximum <= 2147483647L => {
+          ignore(self.advance())
+          Ok(occurrence(0, Some(maximum.to_int())))
+        }
+        _ => Ok(zero_or_more())
+      }
     }
     IntegerLiteral(minimum) if self.peek_kind(1) == Star => {
       if minimum < 0L || minimum > 2147483647L {
@@ -126,19 +132,36 @@ fn Parser::parse_primary(
   match self.current_kind() {
     Identifier(name) => {
       ignore(self.advance())
-      match name {
-        "true" => Ok(literal(bool_value(true)))
-        "false" => Ok(literal(bool_value(false)))
-        _ =>
-          match primitive_from_name(name) {
-            Some(kind) => Ok(primitive(kind))
-            None => Ok(reference(name))
+      if self.current_kind() == LessAngle {
+        ignore(self.advance())
+        self.skip_newlines()
+        let arguments : Array[TypeExpr] = []
+        while true {
+          match self.parse_postfix(depth + 1) {
+            Ok(value) => arguments.push(value)
+            Err(error) => return Err(error)
           }
+          self.skip_newlines()
+          if self.current_kind() != Comma {
+            break
+          }
+          ignore(self.advance())
+          self.skip_newlines()
+        }
+        match self.expect(GreaterAngle, "'>' after generic arguments") {
+          Ok(_) => return Ok(Application(name, arguments))
+          Err(error) => return Err(error)
+        }
       }
+      Ok(reference(name))
     }
     IntegerLiteral(value) => {
       ignore(self.advance())
       Ok(literal(integer_value(value)))
+    }
+    NumberLiteral(value) => {
+      ignore(self.advance())
+      Ok(literal(value))
     }
     TextLiteral(value) => {
       ignore(self.advance())
@@ -150,14 +173,29 @@ fn Parser::parse_primary(
     }
     LParen => {
       ignore(self.advance())
-      self.skip_newlines()
-      let value = match self.parse_expression(depth + 1) {
+      let alternatives = match self.parse_group(RParen, depth + 1) {
         Ok(result) => result
         Err(error) => return Err(error)
       }
-      self.skip_newlines()
       match self.expect(RParen, "')'") {
-        Ok(_) => Ok(value)
+        Ok(_) => {
+          if alternatives.length() == 1 && alternatives[0].length() == 1 {
+            let entry = alternatives[0][0]
+            if entry.key() is None && entry.occurrence() == once() {
+              return Ok(entry.value())
+            }
+          }
+          Ok(GroupSchema(alternatives))
+        }
+        Err(error) => Err(error)
+      }
+    }
+    Tilde | Ampersand => {
+      let unwrap = self.current_kind() == Tilde
+      ignore(self.advance())
+      self.skip_newlines()
+      match self.parse_primary(depth + 1) {
+        Ok(value) => Ok(if unwrap { Unwrap(value) } else { Enumeration(value) })
         Err(error) => Err(error)
       }
     }
@@ -174,32 +212,41 @@ fn Parser::parse_tag(
   depth : Int32,
 ) -> Result[TypeExpr, CddlError] {
   ignore(self.advance())
-  match self.current_kind() {
-    IntegerLiteral(6L) => ignore(self.advance())
-    _ =>
-      return Err(self.error("only CBOR tag syntax '#6.n(type)' is supported"))
-  }
-  match self.expect(Dot, "'.' after #6") {
-    Ok(_) => ()
-    Err(error) => return Err(error)
-  }
-  let tag = match self.current_kind() {
-    IntegerLiteral(value) if value >= 0L => {
+  let major = match self.current_kind() {
+    IntegerLiteral(n) if n >= 0L && n <= 7L => {
       ignore(self.advance())
-      value
+      n.to_int()
     }
-    _ => return Err(self.error("expected a non-negative CBOR tag number"))
+    IntegerLiteral(_) =>
+      return Err(self.error("CBOR major type must be 0 through 7"))
+    _ => return Ok(Primitive(AnyType))
   }
-  match self.expect(LParen, "'(' after tag number") {
-    Ok(_) => ()
-    Err(error) => return Err(error)
+  let mut argument : UInt64? = None
+  if self.current_kind() == Dot {
+    ignore(self.advance())
+    argument = match self.current_kind() {
+      IntegerLiteral(n) if n >= 0L => Some(n.reinterpret_as_uint64())
+      NumberLiteral(UnsignedValue(n)) => Some(n)
+      _ =>
+        return Err(self.error("expected unsigned CBOR additional information"))
+    }
+    ignore(self.advance())
   }
+  if major != 6 || self.current_kind() != LParen {
+    return Ok(MajorSchema(major, argument))
+  }
+  ignore(self.advance())
   let value = match self.parse_expression(depth + 1) {
     Ok(result) => result
     Err(error) => return Err(error)
   }
   match self.expect(RParen, "')' after tagged type") {
-    Ok(_) => Ok(tagged_schema(tag, value))
+    Ok(_) =>
+      match argument {
+        Some(tag) if tag <= 9223372036854775807UL =>
+          Ok(tagged_schema(tag.reinterpret_as_int64(), value))
+        _ => Ok(Controlled(MajorSchema(6, argument), TagContentControl, value))
+      }
     Err(error) => Err(error)
   }
 }
@@ -212,7 +259,33 @@ fn Parser::parse_container(
 ) -> Result[TypeExpr, CddlError] {
   ignore(self.advance())
   let close = if is_map { RBrace } else { RBracket }
-  let entries : Array[GroupEntry] = []
+  let alternatives = match self.parse_group(close, depth + 1) {
+    Ok(value) => value
+    Err(error) => return Err(error)
+  }
+  match self.expect(close, "container closing delimiter") {
+    Ok(_) => ()
+    Err(error) => return Err(error)
+  }
+  let entries = if alternatives.length() == 1 {
+    alternatives[0]
+  } else {
+    [group_entry(GroupSchema(alternatives))]
+  }
+  Ok(if is_map { map_schema(entries) } else { array_schema(entries) })
+}
+
+///|
+fn Parser::parse_group(
+  self : Parser,
+  close : TokenKind,
+  depth : Int32,
+) -> Result[Array[Array[GroupEntry]], CddlError] {
+  if depth > self.limits.max_depth() {
+    return Err(cddl_error(ResourceLimit, "group nesting exceeds max_depth"))
+  }
+  let alternatives : Array[Array[GroupEntry]] = []
+  let mut entries : Array[GroupEntry] = []
   self.skip_newlines()
   while self.current_kind() != close {
     if self.current_kind() == EndOfInput {
@@ -221,59 +294,68 @@ fn Parser::parse_container(
     if entries.length() >= self.limits.max_container_items() {
       return Err(cddl_error(ResourceLimit, "group exceeds max_container_items"))
     }
-    let cardinality = match self.parse_occurrence() {
+    if self.current_kind() == GroupChoice {
+      alternatives.push(entries)
+      entries = []
+      ignore(self.advance())
+      self.skip_newlines()
+      continue
+    }
+    let entry = match self.parse_entry(depth + 1) {
       Ok(value) => value
       Err(error) => return Err(error)
     }
-    if is_map {
-      let (key, value) = match (self.current_kind(), self.peek_kind(1)) {
-        (Identifier(label), Colon) => {
-          ignore(self.advance())
-          ignore(self.advance())
-          let entry_value = match self.parse_expression(depth + 1) {
-            Ok(result) => result
-            Err(error) => return Err(error)
-          }
-          (literal(text_value(label)), entry_value)
-        }
-        _ => {
-          let entry_key = match self.parse_expression(depth + 1) {
-            Ok(result) => result
-            Err(error) => return Err(error)
-          }
-          match self.expect(Arrow, "'=>' between map key and value") {
-            Ok(_) => ()
-            Err(error) => return Err(error)
-          }
-          let entry_value = match self.parse_expression(depth + 1) {
-            Ok(result) => result
-            Err(error) => return Err(error)
-          }
-          (entry_key, entry_value)
-        }
-      }
-      entries.push(group_entry(value, key=Some(key), occurrence=cardinality))
-    } else {
-      let value = match self.parse_expression(depth + 1) {
-        Ok(result) => result
-        Err(error) => return Err(error)
-      }
-      entries.push(group_entry(value, occurrence=cardinality))
-    }
+    entries.push(entry)
     self.skip_newlines()
     if self.current_kind() == Comma {
       ignore(self.advance())
       self.skip_newlines()
-    } else if self.current_kind() != close {
-      return Err(self.error("expected ',' or the end of the group"))
     }
   }
-  ignore(self.advance())
-  if is_map {
-    Ok(map_schema(entries))
-  } else {
-    Ok(array_schema(entries))
+  alternatives.push(entries)
+  Ok(alternatives)
+}
+
+///|
+fn Parser::parse_entry(
+  self : Parser,
+  depth : Int32,
+) -> Result[GroupEntry, CddlError] {
+  let cardinality = match self.parse_occurrence() {
+    Ok(value) => value
+    Err(error) => return Err(error)
   }
+  let (key, value, cut) = match (self.current_kind(), self.peek_kind(1)) {
+    (Identifier(label), Colon) => {
+      ignore(self.advance())
+      ignore(self.advance())
+      let entry_value = match self.parse_expression(depth + 1) {
+        Ok(result) => result
+        Err(error) => return Err(error)
+      }
+      (Some(literal(text_value(label))), entry_value, true)
+    }
+    _ => {
+      let entry_key = match self.parse_expression(depth + 1) {
+        Ok(result) => result
+        Err(error) => return Err(error)
+      }
+      let cut = self.current_kind() == Cut || self.current_kind() == Colon
+      if self.current_kind() == Cut {
+        ignore(self.advance())
+      }
+      if self.current_kind() != Arrow && self.current_kind() != Colon {
+        return Ok(group_entry(entry_key, occurrence=cardinality))
+      }
+      ignore(self.advance())
+      let entry_value = match self.parse_expression(depth + 1) {
+        Ok(result) => result
+        Err(error) => return Err(error)
+      }
+      (Some(entry_key), entry_value, cut)
+    }
+  }
+  Ok(group_entry(value, key~, occurrence=cardinality, cut~))
 }
 
 ///|
@@ -294,29 +376,12 @@ fn Parser::parse_postfix(
           Ok(value) => value
           Err(error) => return Err(error)
         }
-        let lower = match integer_literal_from(expression) {
-          Some(value) => value
-          None =>
-            return Err(
-              self.error("integer range lower bound must be a literal"),
-            )
+        expression = match (expression, upper_expression) {
+          (Literal(IntegerValue(a)), Literal(IntegerValue(b))) =>
+            IntegerRange(a, b, exclusive)
+          (Literal(a), Literal(b)) => ValueRange(a, b, exclusive)
+          (a, b) => DynamicRange(a, b, exclusive)
         }
-        let upper = match integer_literal_from(upper_expression) {
-          Some(value) => value
-          None =>
-            return Err(
-              self.error("integer range upper bound must be a literal"),
-            )
-        }
-        if upper < lower || (exclusive && upper == lower) {
-          return Err(
-            cddl_error(
-              InvalidRange,
-              "range upper bound must be greater than its lower bound",
-            ),
-          )
-        }
-        expression = integer_range(lower, upper, exclusive)
       }
       Control(name) => {
         let operator = match control_from_name(name) {
@@ -411,12 +476,44 @@ fn find_unknown_reference(
   rules : Array[Rule],
 ) -> String? {
   match expression {
-    Reference(name) => if has_rule(rules, name) { None } else { Some(name) }
+    Reference(name) =>
+      if has_rule(rules, name) ||
+        name.has_prefix("$") ||
+        prelude_expression(name) is Some(_) {
+        None
+      } else {
+        Some(name)
+      }
     Choice(items) => {
       for item in items {
         match find_unknown_reference(item, rules) {
           Some(name) => return Some(name)
           None => ()
+        }
+      }
+      None
+    }
+    Application(name, arguments) => {
+      if !has_rule(rules, name) {
+        return Some(name)
+      }
+      for item in arguments {
+        if find_unknown_reference(item, rules) is Some(missing) {
+          return Some(missing)
+        }
+      }
+      None
+    }
+    Unwrap(value) | Enumeration(value) => find_unknown_reference(value, rules)
+    DynamicRange(lower, upper, _) =>
+      match find_unknown_reference(lower, rules) {
+        Some(name) => Some(name)
+        None => find_unknown_reference(upper, rules)
+      }
+    GroupSchema(alternatives) => {
+      for entries in alternatives {
+        if find_unknown_reference(ArraySchema(entries), rules) is Some(missing) {
+          return Some(missing)
         }
       }
       None
@@ -455,8 +552,12 @@ pub fn parse_cddl(
   source : String,
   limits~ : CddlLimits = cddl_limits(),
 ) -> Result[Schema, CddlError] {
+  match check_standard_syntax(source, limits~) {
+    Ok(_) => ()
+    Err(error) => return Err(error)
+  }
   let tokens = match tokenize(source, limits~) {
-    Ok(value) => value
+    Ok(value) => value.filter(token => token.kind() != Newline)
     Err(error) => return Err(error)
   }
   let parser : Parser = { tokens, limits, index: 0, }
@@ -473,22 +574,83 @@ pub fn parse_cddl(
       }
       _ => return Err(parser.error("expected a rule name"))
     }
-    if has_rule(rules, name) {
-      return Err(
-        cddl_error(DuplicateRule, "duplicate rule: " + name, span=Some(span)),
-      )
+    let parameters : Array[String] = []
+    if parser.current_kind() == LessAngle {
+      ignore(parser.advance())
+      parser.skip_newlines()
+      while true {
+        match parser.current_kind() {
+          Identifier(parameter) => {
+            if parameters.contains(parameter) {
+              return Err(parser.error("duplicate generic parameter"))
+            }
+            parameters.push(parameter)
+            ignore(parser.advance())
+          }
+          _ => return Err(parser.error("expected generic parameter name"))
+        }
+        parser.skip_newlines()
+        if parser.current_kind() != Comma {
+          break
+        }
+        ignore(parser.advance())
+        parser.skip_newlines()
+      }
+      match parser.expect(GreaterAngle, "'>' after generic parameters") {
+        Ok(_) => ()
+        Err(error) => return Err(error)
+      }
+    }
+    let extension = parser.current_kind() == TypeChoice ||
+      parser.current_kind() == GroupChoice
+    let group_extension = parser.current_kind() == GroupChoice
+    if extension {
+      ignore(parser.advance())
     }
     match parser.expect(Assign, "'=' after rule name") {
       Ok(_) => ()
       Err(error) => return Err(error)
     }
-    let value = match parser.parse_expression(0) {
-      Ok(result) => result
+    parser.skip_newlines()
+    let value = match parser.parse_entry(0) {
+      Ok(entry) =>
+        if entry.key() is None && entry.occurrence() == once() {
+          entry.value()
+        } else {
+          GroupSchema([[entry]])
+        }
       Err(error) => return Err(error)
     }
-    rules.push(rule(name, value, span))
-    if parser.current_kind() != Newline && parser.current_kind() != EndOfInput {
-      return Err(parser.error("expected a newline after the rule"))
+    if has_rule(rules, name) && !extension {
+      let same = rules.any(previous => {
+        previous.name() == name &&
+        previous.value() == value &&
+        previous.parameters() == parameters
+      })
+      if same {
+        continue
+      }
+      return Err(
+        cddl_error(DuplicateRule, "conflicting rule: " + name, span=Some(span)),
+      )
+    }
+    if extension && has_rule(rules, name) {
+      for index, previous in rules {
+        if previous.name() == name {
+          if previous.parameters() != parameters {
+            return Err(parser.error("generic extension parameters differ"))
+          }
+          let merged = if group_extension {
+            GroupSchema([as_group(previous.value()), as_group(value)])
+          } else {
+            choice([previous.value(), value])
+          }
+          rules[index] = rule(name, merged, previous.span(), parameters~)
+          break
+        }
+      }
+    } else {
+      rules.push(rule(name, value, span, parameters~))
     }
     parser.skip_newlines()
   }
@@ -498,7 +660,11 @@ pub fn parse_cddl(
     )
   }
   for item in rules {
-    match find_unknown_reference(item.value(), rules) {
+    let scope = rules.copy()
+    for parameter in item.parameters() {
+      scope.push(rule(parameter, primitive(AnyType), item.span()))
+    }
+    match find_unknown_reference(item.value(), scope) {
       Some(name) =>
         return Err(
           cddl_error(

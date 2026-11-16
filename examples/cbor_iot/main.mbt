@@ -4,7 +4,7 @@ fn main {
     #|telemetry = #6.1001({
     #|  1 => bstr .size 8,
     #|  2 => -40..125,
-    #|  ? 3 => tstr .size 1..12,
+    #|  ? 3 => tstr .size (1..12),
     #|})
   let document = @cddl.parse_cddl(source).unwrap()
   let payload = @cddl.tagged_value(

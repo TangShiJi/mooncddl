@@ -36,7 +36,7 @@ test "parser rejects duplicate and unknown rules" {
 
 ///|
 test "parser rejects unsupported controls explicitly" {
-  match parse_cddl("name = tstr .regexp \"[a-z]+\"") {
+  match parse_cddl("name = tstr .pcre \"[a-z]+\"") {
     Ok(_) => fail("unsupported control must not be ignored")
     Err(error) => assert_eq(error.kind(), UnsupportedFeature)
   }

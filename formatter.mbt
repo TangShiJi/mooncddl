@@ -42,16 +42,21 @@ fn format_literal(value : CddlValue) -> Result[String, CddlError] {
     NullValue => Ok("null")
     BoolValue(value) => Ok(value.to_string())
     IntegerValue(value) => Ok(value.to_string())
+    UnsignedValue(value) => Ok(value.to_string())
+    NegativeValue(value) =>
+      Ok(
+        if value == 18446744073709551615UL {
+          "-18446744073709551616"
+        } else {
+          "-" + (value + 1UL).to_string()
+        },
+      )
+    SimpleValue(value) => Ok("#7." + value.to_string())
+    EncodedFloat(_, value) => format_float(value)
     TextValue(value) => Ok(escape_cddl_text(value))
     BytesValue(value) => Ok(format_bytes(value))
-    FloatValue(_) =>
-      Err(
-        cddl_error(
-          UnsupportedFeature,
-          "canonical formatting of floating-point literals is not supported",
-        ),
-      )
-    ArrayValue(_) | MapValue(_) | TaggedValue(_, _) =>
+    FloatValue(value) => format_float(value)
+    ArrayValue(_) | MapValue(_) | TaggedValue(_, _) | WideTagValue(_, _) =>
       Err(
         cddl_error(
           UnsupportedFeature,
@@ -91,6 +96,12 @@ fn control_name(value : ControlOperator) -> String {
     NotEqualControl => "ne"
     AndControl => "and"
     WithinControl => "within"
+    BitsControl => "bits"
+    DefaultControl => "default"
+    TagContentControl => "tag-content"
+    CborControl => "cbor"
+    CborSequenceControl => "cborseq"
+    RegexpControl => "regexp"
   }
 }
 
@@ -113,6 +124,51 @@ fn format_expression(expression : TypeExpr) -> Result[String, CddlError] {
     Primitive(value) => Ok(primitive_name(value))
     Literal(value) => format_literal(value)
     Reference(name) => Ok(name)
+    MajorSchema(major, argument) =>
+      Ok(
+        "#" +
+        major.to_string() +
+        (match argument {
+          Some(value) => "." + value.to_string()
+          None => ""
+        }),
+      )
+    ValueRange(lower, upper, exclusive) =>
+      match (format_literal(lower), format_literal(upper)) {
+        (Ok(a), Ok(b)) => Ok(a + (if exclusive { "..." } else { ".." }) + b)
+        (Err(error), _) | (_, Err(error)) => Err(error)
+      }
+    DynamicRange(lower, upper, exclusive) =>
+      match (format_expression(lower), format_expression(upper)) {
+        (Ok(a), Ok(b)) => Ok(a + (if exclusive { " ... " } else { " .. " }) + b)
+        (Err(error), _) | (_, Err(error)) => Err(error)
+      }
+    Application(name, arguments) => {
+      let parts : Array[String] = []
+      for argument in arguments {
+        match format_expression(argument) {
+          Ok(value) => parts.push(value)
+          Err(error) => return Err(error)
+        }
+      }
+      Ok(name + "<" + parts.join(", ") + ">")
+    }
+    Unwrap(body) | Enumeration(body) =>
+      match format_expression(body) {
+        Ok(value) =>
+          Ok((if expression is Unwrap(_) { "~" } else { "&" }) + value)
+        Err(error) => Err(error)
+      }
+    GroupSchema(alternatives) => {
+      let groups : Array[String] = []
+      for entries in alternatives {
+        match format_group_entries(entries) {
+          Ok(value) => groups.push(value)
+          Err(error) => return Err(error)
+        }
+      }
+      Ok("(" + groups.join(" // ") + ")")
+    }
     Choice(alternatives) => {
       let output : Array[String] = []
       for alternative in alternatives {
@@ -137,6 +193,12 @@ fn format_expression(expression : TypeExpr) -> Result[String, CddlError] {
         Err(error) => Err(error)
       }
     Controlled(target, operator, argument) => {
+      if operator == TagContentControl {
+        match (format_expression(target), format_expression(argument)) {
+          (Ok(left), Ok(right)) => return Ok(left + "(" + right + ")")
+          (Err(error), _) | (_, Err(error)) => return Err(error)
+        }
+      }
       let left = match format_expression(target) {
         Ok(value) => value
         Err(error) => return Err(error)
@@ -145,7 +207,7 @@ fn format_expression(expression : TypeExpr) -> Result[String, CddlError] {
         Ok(value) => value
         Err(error) => return Err(error)
       }
-      Ok(left + " ." + control_name(operator) + " " + right)
+      Ok("(" + left + ") ." + control_name(operator) + " (" + right + ")")
     }
   }
 }
@@ -155,6 +217,21 @@ fn format_group(
   entries : Array[GroupEntry],
   is_map : Bool,
 ) -> Result[String, CddlError] {
+  match format_group_entries(entries) {
+    Ok(body) =>
+      Ok(
+        (if is_map { "{ " } else { "[ " }) +
+        body +
+        (if is_map { " }" } else { " ]" }),
+      )
+    Err(error) => Err(error)
+  }
+}
+
+///|
+fn format_group_entries(
+  entries : Array[GroupEntry],
+) -> Result[String, CddlError] {
   let output : Array[String] = []
   for entry in entries {
     let prefix = format_occurrence(entry.occurrence())
@@ -162,7 +239,7 @@ fn format_group(
       Ok(formatted) => formatted
       Err(error) => return Err(error)
     }
-    if is_map {
+    if entry.key() is Some(_) {
       let key = match entry.key() {
         Some(expression) =>
           match format_expression(expression) {
@@ -171,17 +248,14 @@ fn format_group(
           }
         None => "any"
       }
-      output.push(prefix + key + " => " + value)
+      output.push(
+        prefix + key + (if entry.is_cut() { " ^=> " } else { " => " }) + value,
+      )
     } else {
       output.push(prefix + value)
     }
   }
-  let (open, close) = if is_map { ("{ ", " }") } else { ("[ ", " ]") }
-  if output.length() == 0 {
-    Ok(if is_map { "{}" } else { "[]" })
-  } else {
-    Ok(open + output.join(", ") + close)
-  }
+  Ok(output.join(", "))
 }
 
 ///|
@@ -191,7 +265,17 @@ pub fn format_cddl(document : Schema) -> Result[String, CddlError] {
   let output : Array[String] = []
   for item in document.rules() {
     match format_expression(item.value()) {
-      Ok(value) => output.push(item.name() + " = " + value)
+      Ok(value) =>
+        output.push(
+          item.name() +
+          (if item.parameters().length() == 0 {
+            ""
+          } else {
+            "<" + item.parameters().join(", ") + ">"
+          }) +
+          " = " +
+          value,
+        )
       Err(error) => return Err(error)
     }
   }

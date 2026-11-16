@@ -1,7 +1,7 @@
 ///|
 test "canonical formatter is stable and round-trips schemas" {
   let source =
-    #|item = { id: uint, ? label: tstr .size 1..20, * tstr => any }
+    #|item = { id: uint, ? label: tstr .size (1..20), * tstr => any }
     #|batch = #6.1000([1*10 item])
   let first = parse_cddl(source).unwrap()
   let rendered = format_cddl(first).unwrap()

@@ -19,5 +19,5 @@ test "predefined names and controls are explicit" {
   assert_eq(primitive_from_name("tstr"), Some(TextType))
   assert_eq(primitive_from_name("string"), None)
   assert_eq(control_from_name("size"), Some(SizeControl))
-  assert_eq(control_from_name("regexp"), None)
+  assert_eq(control_from_name("regexp"), Some(RegexpControl))
 }

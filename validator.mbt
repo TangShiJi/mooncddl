@@ -31,6 +31,7 @@ priv struct ValidationContext {
   limits : CddlLimits
   issues : Array[ValidationIssue]
   mut truncated : Bool
+  json_mode : Bool
 }
 
 ///|
@@ -65,6 +66,13 @@ fn expression_name(expression : TypeExpr) -> String {
       }
     Literal(value) => "literal " + value.describe()
     Reference(name) => name
+    MajorSchema(major, _) => "CBOR major type " + major.to_string()
+    ValueRange(_, _, _) => "numeric range"
+    DynamicRange(_, _, _) => "named numeric range"
+    Application(name, _) => name + "<...>"
+    Unwrap(_) => "unwrapped group"
+    Enumeration(_) => "group enumeration"
+    GroupSchema(_) => "group choice"
     Choice(_) => "choice"
     IntegerRange(lower, upper, exclusive) =>
       lower.to_string() +
@@ -84,12 +92,34 @@ fn expression_name(expression : TypeExpr) -> String {
         NotEqualControl => ".ne constraint"
         AndControl => ".and constraint"
         WithinControl => ".within constraint"
+        BitsControl => ".bits constraint"
+        DefaultControl => ".default annotation"
+        TagContentControl => "tag content"
+        CborControl => "embedded CBOR"
+        CborSequenceControl => "embedded CBOR sequence"
+        RegexpControl => "XSD regular expression"
       }
   }
 }
 
 ///|
-fn primitive_matches(kind : PrimitiveType, value : CddlValue) -> Bool {
+fn primitive_matches(
+  kind : PrimitiveType,
+  value : CddlValue,
+  json_mode : Bool,
+) -> Bool {
+  if json_mode && value is FloatValue(n) && n == n.floor() {
+    match kind {
+      UintType => return n >= 0.0 && n < 18446744073709551616.0
+      NintType => return n < 0.0 && n >= -18446744073709551616.0
+      IntType =>
+        return n >= -18446744073709551616.0 && n < 18446744073709551616.0
+      _ => ()
+    }
+  }
+  if json_mode && kind == FloatType && numeric_double(value) is Some(n) {
+    return compare_number(value, FloatValue(n)) == Some(0)
+  }
   match (kind, value) {
     (AnyType, _) => true
     (BoolType, BoolValue(_)) => true
@@ -97,6 +127,9 @@ fn primitive_matches(kind : PrimitiveType, value : CddlValue) -> Bool {
     (UintType, IntegerValue(number)) => number >= 0L
     (NintType, IntegerValue(number)) => number < 0L
     (IntType, IntegerValue(_)) => true
+    (UintType | IntType | NumberType, UnsignedValue(_)) => true
+    (NintType | IntType | NumberType, NegativeValue(_)) => true
+    (FloatType | NumberType, EncodedFloat(_, _)) => true
     (FloatType, FloatValue(_)) => true
     (NumberType, IntegerValue(_) | FloatValue(_)) => true
     (TextType, TextValue(_)) => true
@@ -131,16 +164,16 @@ fn occurrence_max_reached(cardinality : Occurrence, count : Int32) -> Bool {
 
 ///|
 fn try_validate(
-  schema : Schema,
-  limits : CddlLimits,
+  context : ValidationContext,
   expression : TypeExpr,
   value : CddlValue,
   path : String,
   depth : Int32,
 ) -> Bool {
   let trial : ValidationContext = {
-    schema,
-    limits,
+    schema: context.schema,
+    limits: context.limits,
+    json_mode: context.json_mode,
     issues: [],
     truncated: false,
   }
@@ -171,14 +204,7 @@ fn validate_choice(
   depth : Int32,
 ) -> Bool {
   for alternative in alternatives {
-    if try_validate(
-        context.schema,
-        context.limits,
-        alternative,
-        value,
-        path,
-        depth + 1,
-      ) {
+    if try_validate(context, alternative, value, path, depth + 1) {
       return true
     }
   }
@@ -219,8 +245,7 @@ fn validate_array_group(
           !occurrence_max_reached(cardinality, count) {
       let item_path = path + "/" + item_index.to_string()
       if try_validate(
-          context.schema,
-          context.limits,
+          context,
           entry.value(),
           items[item_index],
           item_path,
@@ -300,14 +325,7 @@ fn validate_map_group(
       if consumed[index] || occurrence_max_reached(cardinality, count) {
         continue
       }
-      if try_validate(
-          context.schema,
-          context.limits,
-          key_schema,
-          entry.0,
-          path,
-          depth + 1,
-        ) {
+      if try_validate(context, key_schema, entry.0, path, depth + 1) {
         let entry_path = map_entry_path(path, entry.0, index)
         consumed[index] = true
         count += 1
@@ -356,15 +374,6 @@ fn validate_map_group(
 }
 
 ///|
-fn comparison_number(value : CddlValue) -> Double? {
-  match value {
-    IntegerValue(number) => Some(number.to_double())
-    FloatValue(number) => Some(number)
-    _ => None
-  }
-}
-
-///|
 fn validate_control(
   context : ValidationContext,
   target : TypeExpr,
@@ -385,10 +394,101 @@ fn validate_control(
     return false
   }
   match operator {
+    RegexpControl =>
+      match (value, resolve_head(context.schema, argument, 0)) {
+        (TextValue(text), Some(Literal(TextValue(pattern)))) =>
+          match match_xsd_regex(pattern, text, limits=context.limits) {
+            Ok(true) => true
+            _ =>
+              report_mismatch(
+                context,
+                ComparisonFailed,
+                path,
+                "XSD regular expression",
+                value,
+                "text does not match XSD pattern or pattern resource limit reached",
+              )
+          }
+        _ =>
+          report_mismatch(
+            context,
+            ComparisonFailed,
+            path,
+            "text and singleton text controller",
+            value,
+            ".regexp requires text",
+          )
+      }
+    CborControl | CborSequenceControl =>
+      match value {
+        BytesValue(bytes) => {
+          let decoded = if operator == CborControl {
+            decode_cbor(bytes, limits=context.limits)
+          } else {
+            decode_cbor_sequence(bytes, limits=context.limits)
+          }
+          match decoded {
+            Ok(decoded) =>
+              validate_expression(context, argument, decoded, path, depth + 1)
+            Err(_) =>
+              report_mismatch(
+                context,
+                TypeMismatch,
+                path,
+                "well-formed embedded CBOR",
+                value,
+                "embedded CBOR is malformed or exceeds resource limits",
+              )
+          }
+        }
+        _ => false
+      }
+    TagContentControl =>
+      match value {
+        TaggedValue(_, body) | WideTagValue(_, body) =>
+          validate_expression(context, argument, body, path, depth + 1)
+        _ => false
+      }
     AndControl | WithinControl =>
       validate_expression(context, argument, value, path, depth + 1)
     SizeControl => {
-      let actual_size = value.size()
+      if unsigned_component(value) is Some(number) {
+        let mut width = 0
+        let mut rest = number
+        while rest > 0UL {
+          width += 1
+          rest = rest >> 8
+        }
+        let bound = capacity_upper_bound(context.schema, argument, 0)
+        let mut capacity_allowed = bound is Some(n) && n >= width.to_uint64()
+        for n = width; n <= 8; n = n + 1 {
+          if try_validate(
+              context,
+              argument,
+              IntegerValue(n.to_int64()),
+              path,
+              depth + 1,
+            ) {
+            capacity_allowed = true
+            break
+          }
+        }
+        if capacity_allowed {
+          return true
+        }
+        return report_mismatch(
+          context,
+          SizeMismatch,
+          path,
+          "unsigned integer byte capacity",
+          value,
+          "uint does not fit .size controller",
+        )
+      }
+      let actual_size = match value {
+        TextValue(_) | BytesValue(_) => value.size()
+        _ => None
+      }
       let size_value = match actual_size {
         Some(number) => IntegerValue(number.to_int64())
         None =>
@@ -398,17 +498,10 @@ fn validate_control(
             path,
             "sized value",
             value,
-            ".size applies only to text, bytes, arrays, and maps",
+            ".size applies only to unsigned integers, text, and bytes",
           )
       }
-      if try_validate(
-          context.schema,
-          context.limits,
-          argument,
-          size_value,
-          path,
-          depth + 1,
-        ) {
+      if try_validate(context, argument, size_value, path, depth + 1) {
         true
       } else {
         report_mismatch(
@@ -421,10 +514,18 @@ fn validate_control(
         )
       }
     }
-    EqualControl | NotEqualControl => {
-      let equal = match argument {
-        Literal(expected) => value == expected
-        _ => false
+    EqualControl | NotEqualControl | DefaultControl => {
+      let equal = match singleton_value(context.schema, argument, 0) {
+        Some(expected) => data_equal(value, expected, true)
+        None =>
+          return report_mismatch(
+            context,
+            ComparisonFailed,
+            path,
+            "singleton controller",
+            value,
+            "equality controller must denote exactly one value",
+          )
       }
       let valid = if operator == EqualControl { equal } else { !equal }
       if valid {
@@ -444,18 +545,18 @@ fn validate_control(
     | LessOrEqualControl
     | GreaterThanControl
     | GreaterOrEqualControl => {
-      let actual = comparison_number(value)
-      let expected = match argument {
-        Literal(literal_value) => comparison_number(literal_value)
+      let controller = match resolve_head(context.schema, argument, 0) {
+        Some(Literal(value)) => Some(value)
         _ => None
       }
-      match (actual, expected) {
-        (Some(left), Some(right)) => {
+      match
+        controller.map(bound => compare_number(value, bound)).unwrap_or(None) {
+        Some(order) => {
           let valid = match operator {
-            LessThanControl => left < right
-            LessOrEqualControl => left <= right
-            GreaterThanControl => left > right
-            GreaterOrEqualControl => left >= right
+            LessThanControl => order < 0
+            LessOrEqualControl => order <= 0
+            GreaterThanControl => order > 0
+            GreaterOrEqualControl => order >= 0
             _ => false
           }
           if valid {
@@ -482,6 +583,51 @@ fn validate_control(
           )
       }
     }
+    BitsControl => {
+      let bytes = match value {
+        BytesValue(bytes) => bytes
+        _ if unsigned_component(value) is Some(number) => {
+          let out : Array[Byte] = []
+          let mut rest = number
+          while rest > 0UL {
+            out.push((rest & 255UL).to_int().to_byte())
+            rest = rest >> 8
+          }
+          Bytes::from_array(out[:])
+        }
+        _ =>
+          return report_mismatch(
+            context,
+            ComparisonFailed,
+            path,
+            "uint or bstr",
+            value,
+            ".bits requires unsigned integer or byte string",
+          )
+      }
+      for index, byte in bytes {
+        for bit = 0; bit < 8; bit = bit + 1 {
+          if (byte.to_int() & (1 << bit)) != 0 &&
+            !try_validate(
+              context,
+              argument,
+              integer_value(index.to_int64() * 8L + bit.to_int64()),
+              path,
+              depth + 1,
+            ) {
+            return report_mismatch(
+              context,
+              ComparisonFailed,
+              path,
+              expression_name(argument),
+              value,
+              "a set bit is not permitted by .bits",
+            )
+          }
+        }
+      }
+      true
+    }
   }
 }
 
@@ -504,8 +650,154 @@ fn validate_expression(
     )
   }
   match expression {
+    MajorSchema(major, argument) => {
+      let adjusted = if context.json_mode &&
+        major == 7 &&
+        numeric_double(value) is Some(n) &&
+        compare_number(value, FloatValue(n)) == Some(0) {
+        FloatValue(n)
+      } else if context.json_mode &&
+        (major == 0 || major == 1) &&
+        value is FloatValue(n) &&
+        n == n.floor() {
+        if n >= 0.0 && n < 18446744073709551616.0 {
+          if n < 9223372036854775808.0 {
+            IntegerValue(n.to_int64())
+          } else {
+            exact_uint(
+              (n - 9223372036854775808.0).to_int64().reinterpret_as_uint64() +
+              9223372036854775808UL,
+            )
+          }
+        } else if n < 0.0 && n >= -18446744073709551616.0 {
+          if n >= -9223372036854775808.0 {
+            IntegerValue(n.to_int64())
+          } else {
+            exact_negative(
+              (-n - 9223372036854775808.0).to_int64().reinterpret_as_uint64() +
+              9223372036854775807UL,
+            )
+          }
+        } else {
+          value
+        }
+      } else {
+        value
+      }
+      if major_matches(major, argument, adjusted) {
+        true
+      } else {
+        report_mismatch(
+          context,
+          TypeMismatch,
+          path,
+          expression_name(expression),
+          value,
+          "CBOR major type or additional information mismatch",
+        )
+      }
+    }
+    ValueRange(lower, upper, exclusive) => {
+      let float_bounds = lower is FloatValue(_) || lower is EncodedFloat(_, _)
+      let float_value = value is FloatValue(_) || value is EncodedFloat(_, _)
+      if !context.json_mode && float_bounds != float_value {
+        return report_mismatch(
+          context,
+          TypeMismatch,
+          path,
+          "same numeric kind as range bounds",
+          value,
+          "integer and float ranges are distinct",
+        )
+      }
+      if context.json_mode &&
+        !float_bounds &&
+        numeric_double(value) is Some(n) &&
+        n != n.floor() {
+        return report_mismatch(
+          context,
+          TypeMismatch,
+          path,
+          "integral JSON number",
+          value,
+          "integer range requires an integral value",
+        )
+      }
+      let valid = match
+        (compare_number(value, lower), compare_number(value, upper)) {
+        (Some(a), Some(b)) => a >= 0 && (if exclusive { b < 0 } else { b <= 0 })
+        _ => false
+      }
+      if valid {
+        true
+      } else {
+        report_mismatch(
+          context,
+          OutOfRange,
+          path,
+          "numeric range",
+          value,
+          "numeric value is outside the declared range",
+        )
+      }
+    }
+    DynamicRange(lower, upper, exclusive) =>
+      match
+        (
+          resolve_head(context.schema, lower, 0),
+          resolve_head(context.schema, upper, 0),
+        ) {
+        (Some(Literal(a)), Some(Literal(b))) =>
+          validate_expression(
+            context,
+            ValueRange(a, b, exclusive),
+            value,
+            path,
+            depth + 1,
+          )
+        _ =>
+          report_mismatch(
+            context,
+            OutOfRange,
+            path,
+            "singleton numeric range bounds",
+            value,
+            "range bounds do not resolve to numeric literals",
+          )
+      }
+    Application(_, _) | Unwrap(_) =>
+      match resolve_head(context.schema, expression, 0) {
+        Some(target) =>
+          validate_expression(context, target, value, path, depth + 1)
+        None =>
+          report_mismatch(
+            context,
+            UnknownReference,
+            path,
+            expression_name(expression),
+            value,
+            "generic arity, reference, or unwrap target is invalid",
+          )
+      }
+    Enumeration(body) =>
+      validate_choice(
+        context,
+        enumeration_members(context.schema, body, 0),
+        value,
+        path,
+        depth + 1,
+      )
+    GroupSchema(_) =>
+      report_mismatch(
+        context,
+        TypeMismatch,
+        path,
+        "group inside a container",
+        value,
+        "a group is not a standalone value type",
+      )
     Primitive(kind) =>
-      if primitive_matches(kind, value) {
+      if primitive_matches(kind, value, context.json_mode) {
         true
       } else {
         report_mismatch(
@@ -518,7 +810,7 @@ fn validate_expression(
         )
       }
     Literal(expected) =>
-      if value == expected {
+      if data_equal(value, expected, context.json_mode) {
         true
       } else {
         report_mismatch(
@@ -548,6 +840,27 @@ fn validate_expression(
       validate_choice(context, alternatives, value, path, depth + 1)
     IntegerRange(lower, upper, exclusive) =>
       match value {
+        FloatValue(n) if context.json_mode && n == n.floor() => {
+          let valid = compare_number(value, IntegerValue(lower)).unwrap_or(-1) >=
+            0 &&
+            (if exclusive {
+              compare_number(value, IntegerValue(upper)).unwrap_or(1) < 0
+            } else {
+              compare_number(value, IntegerValue(upper)).unwrap_or(1) <= 0
+            })
+          if valid {
+            true
+          } else {
+            report_mismatch(
+              context,
+              OutOfRange,
+              path,
+              "integer range",
+              value,
+              "JSON number is outside range",
+            )
+          }
+        }
         IntegerValue(number) => {
           let within = number >= lower &&
             (if exclusive { number < upper } else { number <= upper })
@@ -577,7 +890,36 @@ fn validate_expression(
     ArraySchema(entries) =>
       match value {
         ArrayValue(items) =>
-          validate_array_group(context, entries, items, path, depth + 1)
+          match match_complete_group(context, entries, value, path, depth + 1) {
+            Some(true) => true
+            Some(false) => {
+              ignore(
+                validate_array_group(context, entries, items, path, depth + 1),
+              )
+              if context.issues.length() == 0 {
+                ignore(
+                  report_mismatch(
+                    context,
+                    TypeMismatch,
+                    path,
+                    "complete array group",
+                    value,
+                    "no complete group match",
+                  ),
+                )
+              }
+              false
+            }
+            None =>
+              report_mismatch(
+                context,
+                RecursionLimit,
+                path,
+                "bounded group search",
+                value,
+                "group matching resource limit reached",
+              )
+          }
         _ =>
           report_mismatch(
             context,
@@ -591,7 +933,43 @@ fn validate_expression(
     MapSchema(declarations) =>
       match value {
         MapValue(entries) =>
-          validate_map_group(context, declarations, entries, path, depth + 1)
+          match
+            match_complete_group(context, declarations, value, path, depth + 1) {
+            Some(true) => true
+            Some(false) => {
+              ignore(
+                validate_map_group(
+                  context,
+                  declarations,
+                  entries,
+                  path,
+                  depth + 1,
+                ),
+              )
+              if context.issues.length() == 0 {
+                ignore(
+                  report_mismatch(
+                    context,
+                    TypeMismatch,
+                    path,
+                    "complete map group",
+                    value,
+                    "no complete group match",
+                  ),
+                )
+              }
+              false
+            }
+            None =>
+              report_mismatch(
+                context,
+                RecursionLimit,
+                path,
+                "bounded group search",
+                value,
+                "group matching resource limit reached",
+              )
+          }
         _ =>
           report_mismatch(
             context,
@@ -642,6 +1020,7 @@ pub fn validate(
   value : CddlValue,
   root~ : String? = None,
   limits~ : CddlLimits = cddl_limits(),
+  json_mode~ : Bool = false,
 ) -> Result[ValidationReport, CddlError] {
   let root_name = match root {
     Some(name) => name
@@ -663,6 +1042,7 @@ pub fn validate(
     limits,
     issues: [],
     truncated: false,
+    json_mode,
   }
   let valid = validate_expression(context, expression, value, "", 0)
   Ok({ valid, issues: context.issues, truncated: context.truncated, })

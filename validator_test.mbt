@@ -4,7 +4,7 @@ fn telemetry_schema() -> Schema {
     parse_cddl(
       (
         #|reading = {
-        #|  sensor: tstr .size 1..32,
+        #|  sensor: tstr .size (1..32),
         #|  value: -40..125,
         #|  ? unit: "C" / "F",
         #|}
@@ -18,7 +18,7 @@ fn telemetry_schema() -> Schema {
 
 ///|
 test "validator accepts and rejects scalar constraints" {
-  let document = parse_cddl("temperature = int .ge -40 .le 125").unwrap()
+  let document = parse_cddl("temperature = (int .ge -40) .le 125").unwrap()
   assert_true(validate(document, integer_value(20L)).unwrap().is_valid())
   let report = validate(document, integer_value(200L)).unwrap()
   assert_false(report.is_valid())

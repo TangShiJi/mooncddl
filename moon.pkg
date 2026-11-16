@@ -1,7 +1,9 @@
 import {
   "moonbitlang/core/encoding/utf8",
+  "moonbitlang/core/encoding/base64",
   "moonbitlang/core/int64",
   "moonbitlang/core/json",
+  "moonbitlang/core/math",
 }
 
 warnings = "-implicit_impl_as_method-test_unqualified_package"

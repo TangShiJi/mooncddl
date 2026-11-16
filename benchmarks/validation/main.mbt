@@ -2,7 +2,7 @@
 fn main {
   let schema_source =
     #|reading = {
-    #|  sensor: tstr .size 1..32,
+    #|  sensor: tstr .size (1..32),
     #|  value: -40..125,
     #|  ? unit: "C" / "F",
     #|  * tstr => any,
