@@ -1,0 +1,44 @@
+{
+  "module": "TangShiJi/mooncddl",
+  "version": "0.2.1",
+  "yanked": false,
+  "yanked_reason": null,
+  "metadata": {
+    "name": "TangShiJi/mooncddl",
+    "version": "0.2.1",
+    "readme": "README.md",
+    "repository": "https://github.com/TangShiJi/mooncddl",
+    "license": "Apache-2.0",
+    "keywords": [
+      "cddl",
+      "cbor",
+      "json",
+      "schema",
+      "validation"
+    ],
+    "preferred-target": "native",
+    "description": "CDDL parser, resolver, validator, and conformance toolkit for MoonBit",
+    "checksum": "d4a318488718f5659ac00706869996d2782352f2a5c9e09ea76317482644ea3b",
+    "created_at": "2026-11-16T18:49:40.279871+08:00"
+  },
+  "dependents": [],
+  "latest_version": "0.2.1",
+  "build_status": "success",
+  "versions": [
+    {
+      "version": "0.2.1",
+      "yanked": false,
+      "yanked_reason": null
+    },
+    {
+      "version": "0.2.0",
+      "yanked": false,
+      "yanked_reason": null
+    },
+    {
+      "version": "0.1.0",
+      "yanked": false,
+      "yanked_reason": null
+    }
+  ]
+}

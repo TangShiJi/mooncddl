@@ -1,0 +1,260 @@
+{
+  "oracle": "libxml2 XSD",
+  "libxml_version": [
+    2,
+    14,
+    6
+  ],
+  "lxml_version": [
+    6,
+    0,
+    2,
+    0
+  ],
+  "cases": 34,
+  "failures": 0,
+  "reference_differences": 3,
+  "results": [
+    {
+      "pattern": "[a-z]+",
+      "text": "abc",
+      "libxml2": true,
+      "mooncddl": true,
+      "expected": true
+    },
+    {
+      "pattern": "[a-z]+",
+      "text": "x1",
+      "libxml2": false,
+      "mooncddl": false,
+      "expected": false
+    },
+    {
+      "pattern": "^a$",
+      "text": "a",
+      "libxml2": false,
+      "mooncddl": false,
+      "expected": false
+    },
+    {
+      "pattern": "^a$",
+      "text": "^a$",
+      "libxml2": true,
+      "mooncddl": true,
+      "expected": true
+    },
+    {
+      "pattern": "a.b",
+      "text": "a\nb",
+      "libxml2": false,
+      "mooncddl": false,
+      "expected": false
+    },
+    {
+      "pattern": "a.b",
+      "text": "a\rb",
+      "libxml2": false,
+      "mooncddl": false,
+      "expected": false
+    },
+    {
+      "pattern": "a.b",
+      "text": "axb",
+      "libxml2": true,
+      "mooncddl": true,
+      "expected": true
+    },
+    {
+      "pattern": "a(b|c){2,3}",
+      "text": "abcb",
+      "libxml2": true,
+      "mooncddl": true,
+      "expected": true
+    },
+    {
+      "pattern": "a(b|c){2,3}",
+      "text": "ab",
+      "libxml2": false,
+      "mooncddl": false,
+      "expected": false
+    },
+    {
+      "pattern": "(a?){3}",
+      "text": "a",
+      "libxml2": false,
+      "mooncddl": true,
+      "expected": true,
+      "basis": "XSD Part 2 Appendix F: repetition, Letter category, recursive set subtraction"
+    },
+    {
+      "pattern": "(a?)*",
+      "text": "",
+      "libxml2": true,
+      "mooncddl": true,
+      "expected": true
+    },
+    {
+      "pattern": "a{2,}",
+      "text": "aaaa",
+      "libxml2": true,
+      "mooncddl": true,
+      "expected": true
+    },
+    {
+      "pattern": "a{2}",
+      "text": "aa",
+      "libxml2": true,
+      "mooncddl": true,
+      "expected": true
+    },
+    {
+      "pattern": "[a-z-[aeiou]]+",
+      "text": "bcdf",
+      "libxml2": true,
+      "mooncddl": true,
+      "expected": true
+    },
+    {
+      "pattern": "[a-z-[aeiou]]+",
+      "text": "bad",
+      "libxml2": false,
+      "mooncddl": false,
+      "expected": false
+    },
+    {
+      "pattern": "[^a-z-[0-9]]+",
+      "text": "!?",
+      "libxml2": true,
+      "mooncddl": true,
+      "expected": true
+    },
+    {
+      "pattern": "[^a-z-[0-9]]+",
+      "text": "9",
+      "libxml2": false,
+      "mooncddl": false,
+      "expected": false
+    },
+    {
+      "pattern": "\\p{L}+",
+      "text": "中文é",
+      "libxml2": false,
+      "mooncddl": true,
+      "expected": true,
+      "basis": "XSD Part 2 Appendix F: repetition, Letter category, recursive set subtraction"
+    },
+    {
+      "pattern": "\\p{L}+",
+      "text": "123",
+      "libxml2": false,
+      "mooncddl": false,
+      "expected": false
+    },
+    {
+      "pattern": "\\d+",
+      "text": "١٢٣",
+      "libxml2": true,
+      "mooncddl": true,
+      "expected": true
+    },
+    {
+      "pattern": "\\D+",
+      "text": "abc",
+      "libxml2": true,
+      "mooncddl": true,
+      "expected": true
+    },
+    {
+      "pattern": "\\p{IsBasicLatin}+",
+      "text": "abc",
+      "libxml2": true,
+      "mooncddl": true,
+      "expected": true
+    },
+    {
+      "pattern": "\\p{IsBasicLatin}+",
+      "text": "中文",
+      "libxml2": false,
+      "mooncddl": false,
+      "expected": false
+    },
+    {
+      "pattern": "\\i\\c*",
+      "text": "名:字-1",
+      "libxml2": true,
+      "mooncddl": true,
+      "expected": true
+    },
+    {
+      "pattern": "\\i\\c*",
+      "text": "1name",
+      "libxml2": false,
+      "mooncddl": false,
+      "expected": false
+    },
+    {
+      "pattern": "\\w+",
+      "text": "符号+",
+      "libxml2": true,
+      "mooncddl": true,
+      "expected": true
+    },
+    {
+      "pattern": "\\s+",
+      "text": " \t\n\r",
+      "libxml2": true,
+      "mooncddl": true,
+      "expected": true
+    },
+    {
+      "pattern": "[A-Z-[D-F]]",
+      "text": "E",
+      "libxml2": false,
+      "mooncddl": false,
+      "expected": false
+    },
+    {
+      "pattern": "[A-Z-[D-F]]",
+      "text": "A",
+      "libxml2": true,
+      "mooncddl": true,
+      "expected": true
+    },
+    {
+      "pattern": "[a-z-[d-f-[e]]]",
+      "text": "e",
+      "libxml2": false,
+      "mooncddl": true,
+      "expected": true,
+      "basis": "XSD Part 2 Appendix F: repetition, Letter category, recursive set subtraction"
+    },
+    {
+      "pattern": "[a-z-[d-f-[e]]]",
+      "text": "d",
+      "libxml2": false,
+      "mooncddl": false,
+      "expected": false
+    },
+    {
+      "pattern": "\\p{Lu}+",
+      "text": "ABC",
+      "libxml2": true,
+      "mooncddl": true,
+      "expected": true
+    },
+    {
+      "pattern": "\\p{Ll}+",
+      "text": "é",
+      "libxml2": true,
+      "mooncddl": true,
+      "expected": true
+    },
+    {
+      "pattern": "\\P{N}+",
+      "text": "名字",
+      "libxml2": true,
+      "mooncddl": true,
+      "expected": true
+    }
+  ]
+}

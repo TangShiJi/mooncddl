@@ -1,0 +1,391 @@
+{
+  "reference": "anweiss/cddl 0.10.7",
+  "cases": 41,
+  "failures": 0,
+  "documented_reference_differences": 7,
+  "results": [
+    {
+      "id": "struct-positive",
+      "section": "3.5",
+      "expected": true,
+      "actual": true,
+      "exit_code": 0,
+      "reference": true,
+      "reference_expected": true
+    },
+    {
+      "id": "struct-missing",
+      "section": "3.5",
+      "expected": false,
+      "actual": false,
+      "exit_code": 1,
+      "reference": false,
+      "reference_expected": false
+    },
+    {
+      "id": "struct-extra",
+      "section": "3.5",
+      "expected": false,
+      "actual": false,
+      "exit_code": 1,
+      "reference": false,
+      "reference_expected": false
+    },
+    {
+      "id": "group-positive",
+      "section": "2.1",
+      "expected": true,
+      "actual": true,
+      "exit_code": 0,
+      "reference": true,
+      "reference_expected": true
+    },
+    {
+      "id": "group-negative",
+      "section": "2.1",
+      "expected": false,
+      "actual": false,
+      "exit_code": 1,
+      "reference": false,
+      "reference_expected": false
+    },
+    {
+      "id": "group-choice-positive",
+      "section": "2.2.2",
+      "expected": true,
+      "actual": true,
+      "exit_code": 0,
+      "reference": true,
+      "reference_expected": true
+    },
+    {
+      "id": "group-choice-negative",
+      "section": "2.2.2",
+      "expected": false,
+      "actual": false,
+      "exit_code": 1,
+      "reference": false,
+      "reference_expected": false
+    },
+    {
+      "id": "greedy-suffix",
+      "section": "A",
+      "expected": false,
+      "actual": false,
+      "exit_code": 1,
+      "reference": false,
+      "reference_expected": false
+    },
+    {
+      "id": "bounded-positive",
+      "section": "3.2",
+      "expected": true,
+      "actual": true,
+      "exit_code": 0,
+      "reference": true,
+      "reference_expected": true
+    },
+    {
+      "id": "bounded-negative",
+      "section": "3.2",
+      "expected": false,
+      "actual": false,
+      "exit_code": 1,
+      "reference": false,
+      "reference_expected": false
+    },
+    {
+      "id": "upper-only-positive",
+      "section": "3.2",
+      "expected": true,
+      "actual": true,
+      "exit_code": 0,
+      "reference": true,
+      "reference_expected": true
+    },
+    {
+      "id": "upper-only-negative",
+      "section": "3.2",
+      "expected": false,
+      "actual": false,
+      "exit_code": 1,
+      "reference": false,
+      "reference_expected": false
+    },
+    {
+      "id": "generic-positive",
+      "section": "3.10",
+      "expected": true,
+      "actual": true,
+      "exit_code": 0,
+      "reference": true,
+      "reference_expected": true
+    },
+    {
+      "id": "generic-negative",
+      "section": "3.10",
+      "expected": false,
+      "actual": false,
+      "exit_code": 1,
+      "reference": false,
+      "reference_expected": false
+    },
+    {
+      "id": "socket-positive",
+      "section": "3.9",
+      "expected": true,
+      "actual": true,
+      "exit_code": 0,
+      "reference": true,
+      "reference_expected": true
+    },
+    {
+      "id": "socket-negative",
+      "section": "3.9",
+      "expected": false,
+      "actual": false,
+      "exit_code": 1,
+      "reference": false,
+      "reference_expected": false
+    },
+    {
+      "id": "unwrap-positive",
+      "section": "3.7",
+      "expected": true,
+      "actual": true,
+      "exit_code": 0,
+      "reference": true,
+      "reference_expected": true
+    },
+    {
+      "id": "unwrap-negative",
+      "section": "3.7",
+      "expected": false,
+      "actual": false,
+      "exit_code": 1,
+      "reference": false,
+      "reference_expected": false
+    },
+    {
+      "id": "enum-positive",
+      "section": "2.2.2.2",
+      "expected": true,
+      "actual": true,
+      "exit_code": 0,
+      "reference": true,
+      "reference_expected": true
+    },
+    {
+      "id": "enum-negative",
+      "section": "2.2.2.2",
+      "expected": false,
+      "actual": false,
+      "exit_code": 1,
+      "reference": false,
+      "reference_expected": false
+    },
+    {
+      "id": "cut-positive",
+      "section": "3.5.4",
+      "expected": true,
+      "actual": true,
+      "exit_code": 0,
+      "reference": true,
+      "reference_expected": true
+    },
+    {
+      "id": "cut-negative",
+      "section": "3.5.4",
+      "expected": false,
+      "actual": false,
+      "exit_code": 1,
+      "reference": false,
+      "reference_expected": false
+    },
+    {
+      "id": "no-cut-fallback",
+      "section": "3.5.4",
+      "expected": true,
+      "actual": true,
+      "exit_code": 0,
+      "reference": false,
+      "reference_expected": false,
+      "documented_difference": "RFC 8610 3.5.4 permits fallback without a cut; reference rejects value before fallback",
+      "reference_output": "[INFO] Root type for validation: root\n[ERROR] Validation of \"/tmp/mooncddl-reference-thjn3_kl/value.json\" failed: error validating at JSON location /name: expected type tstr, got 1\nError: \"Validation of \\\"/tmp/mooncddl-reference-thjn3_kl/value.json\\\" failed: error validating at JSON location /name: expected type tstr, got 1\"\n"
+    },
+    {
+      "id": "size-positive",
+      "section": "3.8.1",
+      "expected": true,
+      "actual": true,
+      "exit_code": 0,
+      "reference": true,
+      "reference_expected": true
+    },
+    {
+      "id": "size-negative",
+      "section": "3.8.1",
+      "expected": false,
+      "actual": false,
+      "exit_code": 1,
+      "reference": false,
+      "reference_expected": false
+    },
+    {
+      "id": "utf8-size-positive",
+      "section": "3.8.1",
+      "expected": true,
+      "actual": true,
+      "exit_code": 0,
+      "reference": true,
+      "reference_expected": true
+    },
+    {
+      "id": "utf8-size-negative",
+      "section": "3.8.1",
+      "expected": false,
+      "actual": false,
+      "exit_code": 1,
+      "reference": false,
+      "reference_expected": false
+    },
+    {
+      "id": "bits-positive",
+      "section": "3.8.2",
+      "expected": true,
+      "actual": true,
+      "exit_code": 0,
+      "reference": false,
+      "reference_expected": false,
+      "documented_difference": "Reference JSON validator reports unsupported .bits",
+      "reference_output": "[INFO] Root type for validation: root\n[ERROR] Validation of \"/tmp/mooncddl-reference-thjn3_kl/value.json\" failed: error validating at the root of the JSON document: unsupported control operator .bits\nError: \"Validation of \\\"/tmp/mooncddl-reference-thjn3_kl/value.json\\\" failed: error validating at the root of the JSON document: unsupported control operator .bits\"\n"
+    },
+    {
+      "id": "bits-negative",
+      "section": "3.8.2",
+      "expected": false,
+      "actual": false,
+      "exit_code": 1,
+      "reference": false,
+      "reference_expected": false
+    },
+    {
+      "id": "and-positive",
+      "section": "3.8.5",
+      "expected": true,
+      "actual": true,
+      "exit_code": 0,
+      "reference": true,
+      "reference_expected": true
+    },
+    {
+      "id": "within-negative",
+      "section": "3.8.5",
+      "expected": false,
+      "actual": false,
+      "exit_code": 1,
+      "reference": false,
+      "reference_expected": false
+    },
+    {
+      "id": "comparison-positive",
+      "section": "3.8.6",
+      "expected": true,
+      "actual": true,
+      "exit_code": 0,
+      "reference": false,
+      "reference_expected": false,
+      "documented_difference": "Reference restricts nested numeric controller targets beyond the RFC type intersection",
+      "reference_output": "[INFO] Root type for validation: root\n[ERROR] Validation of \"/tmp/mooncddl-reference-thjn3_kl/value.json\" failed: error validating at the root of the JSON document: target for .lt, .gt, .ge or .le operator must be a numerical data type, got (number .ge 1)\nError: \"Validation of \\\"/tmp/mooncddl-reference-thjn3_kl/value.json\\\" failed: error validating at the root of the JSON document: target for .lt, .gt, .ge or .le operator must be a numerical data type, got (number .ge 1)\"\n"
+    },
+    {
+      "id": "comparison-negative",
+      "section": "3.8.6",
+      "expected": false,
+      "actual": false,
+      "exit_code": 1,
+      "reference": false,
+      "reference_expected": false
+    },
+    {
+      "id": "default-omitted",
+      "section": "3.8.6",
+      "expected": true,
+      "actual": true,
+      "exit_code": 0,
+      "reference": true,
+      "reference_expected": true
+    },
+    {
+      "id": "default-explicit",
+      "section": "3.8.6",
+      "expected": false,
+      "actual": false,
+      "exit_code": 1,
+      "reference": true,
+      "reference_expected": true,
+      "documented_difference": "RFC defines .default as .ne with intent; reference accepts the explicit default",
+      "reference_output": "[INFO] Root type for validation: root\n[INFO] Validation of \"/tmp/mooncddl-reference-thjn3_kl/value.json\" is successful\n"
+    },
+    {
+      "id": "json-integral-float",
+      "section": "E",
+      "expected": true,
+      "actual": true,
+      "exit_code": 0,
+      "reference": false,
+      "reference_expected": false,
+      "documented_difference": "Appendix E unifies JSON numeric spelling; reference distinguishes 10.0",
+      "reference_output": "[INFO] Root type for validation: root\n[ERROR] Validation of \"/tmp/mooncddl-reference-thjn3_kl/value.json\" failed: error validating at the root of the JSON document: expected type uint, got 10.0\nError: \"Validation of \\\"/tmp/mooncddl-reference-thjn3_kl/value.json\\\" failed: error validating at the root of the JSON document: expected type uint, got 10.0\"\n"
+    },
+    {
+      "id": "json-float-domain",
+      "section": "E",
+      "expected": true,
+      "actual": true,
+      "exit_code": 0,
+      "reference": false,
+      "reference_expected": false,
+      "documented_difference": "Appendix E unifies JSON numeric kinds; reference rejects integer spelling for float",
+      "reference_output": "[INFO] Root type for validation: root\n[ERROR] Validation of \"/tmp/mooncddl-reference-thjn3_kl/value.json\" failed: error validating at the root of the JSON document: expected type float, got 10\nError: \"Validation of \\\"/tmp/mooncddl-reference-thjn3_kl/value.json\\\" failed: error validating at the root of the JSON document: expected type float, got 10\"\n"
+    },
+    {
+      "id": "json-float-range",
+      "section": "E",
+      "expected": true,
+      "actual": true,
+      "exit_code": 0,
+      "reference": true,
+      "reference_expected": true
+    },
+    {
+      "id": "json-integer-fraction",
+      "section": "E",
+      "expected": false,
+      "actual": false,
+      "exit_code": 1,
+      "reference": false,
+      "reference_expected": false
+    },
+    {
+      "id": "half-positive",
+      "section": "2.2.3",
+      "expected": true,
+      "actual": true,
+      "exit_code": 0,
+      "reference": true,
+      "reference_expected": true
+    },
+    {
+      "id": "half-negative",
+      "section": "2.2.3",
+      "expected": false,
+      "actual": false,
+      "exit_code": 1,
+      "reference": true,
+      "reference_expected": true,
+      "documented_difference": "RFC float16 denotes half-representable values; reference accepts arbitrary JSON float",
+      "reference_output": "[INFO] Root type for validation: root\n[INFO] Validation of \"/tmp/mooncddl-reference-thjn3_kl/value.json\" is successful\n"
+    }
+  ]
+}
