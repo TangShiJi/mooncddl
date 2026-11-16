@@ -21,7 +21,7 @@ jobs:
           mkdir "$RUNNER_TEMP/mooncddl-consumer"
           cd "$RUNNER_TEMP/mooncddl-consumer"
           moon new . --user external-check --name consumer
-          moon add TangShiJi/mooncddl@0.1.0
+          moon add TangShiJi/mooncddl@0.2.0
           mkdir acceptance
           printf '%s\n' \
             'import {' \
@@ -32,8 +32,10 @@ jobs:
           printf '%s\n' \
             '///|' \
             'fn main {' \
-            '  let document = @cddl.parse_cddl("request = { id: uint }").unwrap()' \
-            '  let report = @cddl.validate_json(document, "{\"id\":7}").unwrap()' \
+            '  let source = "root = pair<uint,tstr> pair<a,b> = [a,b]"' \
+            '  let _syntax = @cddl.check_standard_syntax(source).unwrap()' \
+            '  let document = @cddl.parse_cddl(source).unwrap()' \
+            '  let report = @cddl.validate_json(document, "[7,\"ok\"]").unwrap()' \
             '  if !report.is_valid() {' \
             '    abort("installed package rejected valid JSON")' \
             '  }' \
