@@ -1,0 +1,13 @@
+{
+  "hits": [
+    {
+      "name": "TangShiJi/mooncddl",
+      "version": "0.1.0",
+      "description": "CDDL parser, resolver, validator, and conformance toolkit for MoonBit",
+      "repository": "https://github.com/TangShiJi/mooncddl"
+    }
+  ],
+  "checked_at": "2026-11-16T18:38:57.9468468+08:00",
+  "module_count": 3799,
+  "endpoint": "https://mooncakes.io/api/v0/modules"
+}
