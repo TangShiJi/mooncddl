@@ -1,5 +1,18 @@
 # RFC 8610 一致性目标和验收
 
+## 最终范围和语法验收入口（2026-11-18 复审修订）
+
+最终交付按完整 RFC 8610（2019）验收，不以“有用核心”“常用语法”等子集收口。第 2/3 节及附录 A–E 均纳入目标：语法、名字/泛型解析和数据求值分别检验。RFC 9165 是后续独立扩展，不把未实现该扩展描述为 RFC 8610 语法缺失。资源/数值表示限制必须公开，不得据此默默接受错误数据或将标准功能改为选做。
+
+标准语法输入单独保存为 [52 个正反例](../fixtures/standard-syntax.json)，每例含完整输入、功能类别和预期。它们覆盖规则、增量、socket、泛型、组选择、cut、出现次数、unwrap、枚举、major/Tag、数值/字节/文本词法与非法输入；有限案例不证明所有标准输入均正确。
+
+```bash
+moon build --target native --release cmd/main
+python scripts/check_standard_syntax.py --cli _build/native/release/build/cmd/main/main.exe
+```
+
+语法正例退出 0，语法反例退出 2；超时、崩溃和其他退出码一律失败。报告为 `_build/standard-syntax-report.json`，CI 每次运行并上传。`root = unknown` 的语法可以合法，但可执行解析应拒绝未知名字；不能把语法成功作为完整语义一致性的证明。数据校验的独立正反例仍由 `fixtures/rfc8610.json` 执行。
+
 0.2.1 覆盖目标为 RFC 8610 第 2、3 节及附录 A–E 的完整基础语言。以下是实现追踪，不是有限案例对所有输入的形式化证明。以标准正文判定，表示域/预算见 [兼容边界](COMPATIBILITY.md)。
 
 | 规范 | 实现 | 验收证据 |

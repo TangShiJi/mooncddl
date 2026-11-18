@@ -1,0 +1,314 @@
+[
+  {
+    "id": "valid-01",
+    "feature": "rules and whitespace",
+    "source": "a = uint b = tstr\nc = [a,b] ; comment\n",
+    "syntax_valid": true
+  },
+  {
+    "id": "valid-02",
+    "feature": "identifiers",
+    "source": "a.b--c = @x\n@x = _thing\n_thing = uint",
+    "syntax_valid": true
+  },
+  {
+    "id": "valid-03",
+    "feature": "type extension",
+    "source": "answer = uint\nanswer /= tstr",
+    "syntax_valid": true
+  },
+  {
+    "id": "valid-04",
+    "feature": "group extension",
+    "source": "g = (a: uint)\ng //= (b: tstr)",
+    "syntax_valid": true
+  },
+  {
+    "id": "valid-05",
+    "feature": "socket plug",
+    "source": "root = $type / [$$group]\n$type /= uint\n$$group //= (uint)",
+    "syntax_valid": true
+  },
+  {
+    "id": "valid-06",
+    "feature": "generic parameters and arguments",
+    "source": "root = pair<uint,tstr>\npair<a,b> = [a,b]",
+    "syntax_valid": true
+  },
+  {
+    "id": "valid-07",
+    "feature": "type choice and parentheses",
+    "source": "root = (uint / tstr) / nil",
+    "syntax_valid": true
+  },
+  {
+    "id": "valid-08",
+    "feature": "closed and half open ranges",
+    "source": "a = 1..10 b = -1.5...1.5",
+    "syntax_valid": true
+  },
+  {
+    "id": "valid-09",
+    "feature": "control grammar",
+    "source": "a = tstr .regexp \"[a-z]+\" b = uint .bits bits\nbits = (flag: 0)",
+    "syntax_valid": true
+  },
+  {
+    "id": "valid-10",
+    "feature": "arrays maps empty groups",
+    "source": "a = [] b = {} c = [// uint // tstr]",
+    "syntax_valid": true
+  },
+  {
+    "id": "valid-11",
+    "feature": "optional comma",
+    "source": "a = [uint tstr ? bool,]",
+    "syntax_valid": true
+  },
+  {
+    "id": "valid-12",
+    "feature": "group choices",
+    "source": "a = [(1, uint) // (2, tstr)]",
+    "syntax_valid": true
+  },
+  {
+    "id": "valid-13",
+    "feature": "member key forms",
+    "source": "a = {name: tstr, \"key\": uint, 1: bool, uint ^=> tstr}",
+    "syntax_valid": true
+  },
+  {
+    "id": "valid-14",
+    "feature": "occurrence forms",
+    "source": "a = [? uint, + tstr, * bool, *3 uint, 2* uint, 2*5 uint]",
+    "syntax_valid": true
+  },
+  {
+    "id": "valid-15",
+    "feature": "unwrap",
+    "source": "a = [~point] point = [number,number]",
+    "syntax_valid": true
+  },
+  {
+    "id": "valid-16",
+    "feature": "enumeration",
+    "source": "a = &colors colors = (red: 1, blue: 2) b = &(x: 3, y: 4)",
+    "syntax_valid": true
+  },
+  {
+    "id": "valid-17",
+    "feature": "tag optional number",
+    "source": "a = #6.18([bstr]) b = #6(any)",
+    "syntax_valid": true
+  },
+  {
+    "id": "valid-18",
+    "feature": "major and additional information",
+    "source": "a = # b = #0 c = #7.25 d = #6.123",
+    "syntax_valid": true
+  },
+  {
+    "id": "valid-19",
+    "feature": "unsigned lexical range",
+    "source": "a = 18446744073709551615 b = -18446744073709551616",
+    "syntax_valid": true
+  },
+  {
+    "id": "valid-20",
+    "feature": "integer bases",
+    "source": "a = 0xff b = 0b101 c = -42",
+    "syntax_valid": true
+  },
+  {
+    "id": "valid-21",
+    "feature": "decimal floats",
+    "source": "a = 1.0 b = 1e+3 c = -2.5e-2",
+    "syntax_valid": true
+  },
+  {
+    "id": "valid-22",
+    "feature": "hexadecimal floats",
+    "source": "a = 0x1.8p+1 b = -0x1p-2",
+    "syntax_valid": true
+  },
+  {
+    "id": "valid-23",
+    "feature": "byte strings",
+    "source": "a = 'text' b = h'CA FE' c = b64'AQID'",
+    "syntax_valid": true
+  },
+  {
+    "id": "valid-24",
+    "feature": "text escapes",
+    "source": "a = \"a\\\"b\\\\c\\u0041\"",
+    "syntax_valid": true
+  },
+  {
+    "id": "valid-25",
+    "feature": "extension controls are syntax",
+    "source": "a = tstr .abnf \"rule\" b = bstr .custom other",
+    "syntax_valid": true
+  },
+  {
+    "id": "invalid-01",
+    "feature": "reject malformed standard syntax",
+    "source": "",
+    "syntax_valid": false
+  },
+  {
+    "id": "invalid-02",
+    "feature": "reject malformed standard syntax",
+    "source": "a",
+    "syntax_valid": false
+  },
+  {
+    "id": "invalid-03",
+    "feature": "reject malformed standard syntax",
+    "source": "a =",
+    "syntax_valid": false
+  },
+  {
+    "id": "invalid-04",
+    "feature": "reject malformed standard syntax",
+    "source": "a == uint",
+    "syntax_valid": false
+  },
+  {
+    "id": "invalid-05",
+    "feature": "reject malformed standard syntax",
+    "source": "a = [",
+    "syntax_valid": false
+  },
+  {
+    "id": "invalid-06",
+    "feature": "reject malformed standard syntax",
+    "source": "a = {name:}",
+    "syntax_valid": false
+  },
+  {
+    "id": "invalid-07",
+    "feature": "reject malformed standard syntax",
+    "source": "a = pair<>",
+    "syntax_valid": false
+  },
+  {
+    "id": "invalid-08",
+    "feature": "reject malformed standard syntax",
+    "source": "pair<> = uint",
+    "syntax_valid": false
+  },
+  {
+    "id": "invalid-09",
+    "feature": "reject malformed standard syntax",
+    "source": "a = pair<uint,>",
+    "syntax_valid": false
+  },
+  {
+    "id": "invalid-10",
+    "feature": "reject malformed standard syntax",
+    "source": "a = uint /",
+    "syntax_valid": false
+  },
+  {
+    "id": "invalid-11",
+    "feature": "reject malformed standard syntax",
+    "source": "a = [uint /// tstr]",
+    "syntax_valid": false
+  },
+  {
+    "id": "invalid-12",
+    "feature": "reject malformed standard syntax",
+    "source": "a = #6.1(uint",
+    "syntax_valid": false
+  },
+  {
+    "id": "invalid-13",
+    "feature": "reject malformed standard syntax",
+    "source": "a = #12",
+    "syntax_valid": false
+  },
+  {
+    "id": "invalid-14",
+    "feature": "reject malformed standard syntax",
+    "source": "a = 0x",
+    "syntax_valid": false
+  },
+  {
+    "id": "invalid-15",
+    "feature": "reject malformed standard syntax",
+    "source": "a = 0b2",
+    "syntax_valid": false
+  },
+  {
+    "id": "invalid-16",
+    "feature": "reject malformed standard syntax",
+    "source": "a = 01",
+    "syntax_valid": false
+  },
+  {
+    "id": "invalid-17",
+    "feature": "reject malformed standard syntax",
+    "source": "a = 1.",
+    "syntax_valid": false
+  },
+  {
+    "id": "invalid-18",
+    "feature": "reject malformed standard syntax",
+    "source": "a = 1e+",
+    "syntax_valid": false
+  },
+  {
+    "id": "invalid-19",
+    "feature": "reject malformed standard syntax",
+    "source": "a = 0x1.2",
+    "syntax_valid": false
+  },
+  {
+    "id": "invalid-20",
+    "feature": "reject malformed standard syntax",
+    "source": "a = \"unterminated",
+    "syntax_valid": false
+  },
+  {
+    "id": "invalid-21",
+    "feature": "reject malformed standard syntax",
+    "source": "a = h'00",
+    "syntax_valid": false
+  },
+  {
+    "id": "invalid-22",
+    "feature": "reject malformed standard syntax",
+    "source": "a = ~[uint]",
+    "syntax_valid": false
+  },
+  {
+    "id": "invalid-23",
+    "feature": "reject malformed standard syntax",
+    "source": "a = &uint<>",
+    "syntax_valid": false
+  },
+  {
+    "id": "invalid-24",
+    "feature": "reject malformed standard syntax",
+    "source": "a = uint trailing",
+    "syntax_valid": false
+  },
+  {
+    "id": "invalid-25",
+    "feature": "reject malformed standard syntax",
+    "source": "a = {uint ^ tstr}",
+    "syntax_valid": false
+  },
+  {
+    "id": "invalid-26",
+    "feature": "reject malformed standard syntax",
+    "source": "a = uint .size",
+    "syntax_valid": false
+  },
+  {
+    "id": "invalid-27",
+    "feature": "reject malformed standard syntax",
+    "source": "a = [1**3 uint]",
+    "syntax_valid": false
+  }
+]

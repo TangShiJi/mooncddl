@@ -81,6 +81,7 @@ jobs:
           REFERENCE=$(find "$RUNNER_TEMP/cddl-reference" -type f -executable -name 'cddl*' ! -name '*.tar.gz' | head -1)
           test -n "$CLI"
           test -n "$REFERENCE"
+          python scripts/check_standard_syntax.py --cli "$CLI"
           python scripts/differential.py --cli "$CLI" --reference "$REFERENCE"
           python scripts/xsd_differential.py --cli "$CLI"
 
@@ -92,3 +93,4 @@ jobs:
           path: |
             _build/differential.json
             _build/xsd-differential.json
+            _build/standard-syntax-report.json

@@ -4,6 +4,8 @@
 
 MoonBit 原生 CDDL 数据契约库：解析规则与泛型、校验 JSON/CBOR 值、路径诊断、格式化。CBOR 编解码器处理字节表示，本库判断值是否满足协议，保留字节串、整数键和 Tag。
 
+申报复审入口：[最新版一页申报书](docs/PROJECT_APPLICATION.md)、[标准语法正反例原文](fixtures/standard-syntax.json)、[完整标准一致性与验收说明](docs/STANDARD_CONFORMANCE.md)。申报目标是完整 RFC 8610，不以子集作为最终验收范围；52 个语法案例与数据校验案例分开执行。
+
 ## 标准范围
 
 0.2.1 以 **RFC 8610 第 2、3 节及附录 A–E 完整基础语言**为一致性目标，取代 0.1 子集范围。包含标准语法、分组/PEG 组选择、泛型、socket/plug、增量、unwrap/枚举、major/Tag、全部 40 个 prelude 名称和 14 个控制符：
