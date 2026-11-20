@@ -1,5 +1,7 @@
 # MoonCDDL
 
+复审材料：[修改说明与证据入口](docs/REVIEW_RESPONSE.md)。更新仓库后，赛事表单中的申报书内容也需使用最新版。
+
 [![CI](https://github.com/TangShiJi/mooncddl/actions/workflows/ci.yml/badge.svg)](https://github.com/TangShiJi/mooncddl/actions/workflows/ci.yml)
 
 MoonBit 原生 CDDL 数据契约库：解析规则与泛型、校验 JSON/CBOR 值、路径诊断、格式化。CBOR 编解码器处理字节表示，本库判断值是否满足协议，保留字节串、整数键和 Tag。

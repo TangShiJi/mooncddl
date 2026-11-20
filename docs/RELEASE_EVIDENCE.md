@@ -1,5 +1,9 @@
 # 发布与安装证据
 
+## 2026-11-20 复审材料核对
+
+新增独立语法验收：25 个合法输入与 27 个非法输入逐一检查退出码，报告见 `fixtures/reports/standard-syntax-report.json`。对应提交 `1e2740ad9b2397cb4c8235fb69e2ce775d6f05d4` 的 [CI 44262646574](https://github.com/TangShiJi/mooncddl/actions/runs/44262646574) 成功。申报书现直接列出完整 RFC 8610 目标和标准语法正反例；[复审修改说明](REVIEW_RESPONSE.md) 提供集中入口。本次是材料/语法验证工具更新，核心库发布版本仍为 0.2.1。
+
 ## 0.2.1：2026-11-16 最终核验
 
 - 当前公开包：[TangShiJi/mooncddl@0.2.1](https://mooncakes.io/docs/TangShiJi/mooncddl%400.2.1)。实时 API 返回 version=0.2.1、build_status=success、yanked=false；原始快照见 `fixtures/reports/mooncakes-0.2.1.json`。
